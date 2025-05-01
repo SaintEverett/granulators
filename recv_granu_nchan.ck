@@ -14,7 +14,10 @@
 
     This is an adaptation of Kyle Spratt's "granular.ck" script, a simple granular synth with typical parameters and adjustable randomization.
     This script takes the # of addressable DAC channels and populates a granulator across each one. Granulators are accessed via the numpad, with each instance assigned to a number.
-    The first granulator is linked to "7" on the numpad, and the rest fill in the remaining numbers counter-clockwise from "7".
+    If you have 8 channels, the granulators should be assigned in a circular motion around your num pad. 
+    If you have 4 channels in a perpendicular fashion, set the "mode" variable to "0" and they will be assigned in a "cross" formation.
+    If you have 4 channels in an angled fashion, set the "mode" variable to "1" and they will be assigned in a "X" formation.
+    If you have 2 channels, they will be assigned to "4" and "6".
     The various parameters regarding the sound of the granualator, are stored in a class that is defined below, the GPS (Granular Parameter Storage).
     When you edit parameters of a GPS, that is what you are editing, each granulator has a unique GPS and ID. This allows the granulator to read the parameters of a certain GPS, and only that GPS.
     The various parameters regarding the sound of the granualator, are stored in a class that is defined below, the GPS (Granular Parameter Storage).
@@ -62,31 +65,32 @@ class GPS
 }
 
 // instantiation
-500.0 => float grainSizeMax;
-15.0 => float grainSizeMin;
-int nChans;
-int nGrans;
-string filename;
-string hostname;
-int port;
-1 => int print;
-0 => int device;
-Hid hi;
-HidMsg msg;
-SndBuf buffs[8];
-OscIn mailBox[4];
-OscMsg letterOpener;
-for( int i; i < buffs.size(); i++ )
+800.0 => float grainSizeMax; // used as max grain size value in cursor scaling
+25.0 => float grainSizeMin; // used as min grain size value in cursor scaling
+int nChans; // number of dac channels
+int nGrans; // number of desired grains (specified in command line)
+int mode; // 0 if perpendicular quad setup 1 if angled quad setup
+string filename; // audio file used as source
+string hostname; // address to recieve OSC messages
+int port; // port to recieve OSC messages
+1 => int print; // print granulator changes or not
+0 => int device; // where are you getting HID messages
+Hid hi; // keyboard
+HidMsg msg; // keyboard reader
+SndBuf buffs[8]; // buffer
+OscIn mailBox[4]; // recieves OSC messages
+OscMsg letterOpener; // OSC reader
+for( int i; i < buffs.size(); i++ ) // set buffer interpretation
 {
     buffs[i].interp(2); // set buffer interpolation
 }
-Envelope env[8];
-Gain fader(0.8)[8];
-0 => int whichGPS;
-int keyArray[8];
-dac.channels() => nChans;
-nChans => nGrans;
-WvOut recorders[nChans];
+Envelope env[8]; // envcelope for sound buffers
+Gain fader(0.8)[8]; // master faders
+0 => int whichGPS; // which GPS are you editing
+dac.channels() => nChans; // set how many outputs
+nChans => nGrans; // one granulator per channel
+WvOut recorders[nChans]; // recorders
+int keyArray[nChans]; // keyarray for what you're editing
 // check the command line
 if( !me.args() ) 
 {
@@ -111,22 +115,22 @@ else if( me.args() == 3 )
     me.arg(2) => Std.atoi => port;
 }
 // GPS nGrans
-GPS myGPS[nGrans];
-Gain wet[nGrans];
-Gain dry[nGrans];
+GPS myGPS[nGrans]; // class instantiation 
+Gain wet[nGrans]; // wet send
+Gain dry[nGrans]; // dry send
 JCRev rev[nGrans]; // reverb
 HPF highpass[nGrans]; // hipass for reverb
 Event revWait[nGrans]; // for interpolation of volume to rev
 for( int i; i < rev.size(); i++ )
 {
-    65.0 => highpass[i].freq;
-    0.1 => highpass[i].Q;
-    1.0 => rev[i].mix;
+    105.0 => highpass[i].freq; // keep low mids out of the reverb
+    0.1 => highpass[i].Q; // low Q
+    1.0 => rev[i].mix; // full reverb
 }
 // state you're address
 for( auto x : mailBox )
 {
-    port => x.port;
+    port => x.port; // set port to OSC recievers
 }
 // print your identity
 cherr <= "Your name is " <= hostname <= IO.newline()
@@ -939,16 +943,41 @@ fun void mouseYListen()
 
 fun void arrayOnChanger(int key)
 {
-
-    if( key <= 97 && key >= 95 ) (key-94) => keyArray[(key-95)];
-    else if( key == 92 ) 8 => keyArray[7];
-    else if( key == 94 ) 4 => keyArray[3];
-    else if( key <= 91 && key >= 89 ) (-1 * key) + 96 => keyArray[(-1 * key) + 95];
-    else if( key == 93 ) for( int i; i < keyArray.size(); i++ ) {i+1 => keyArray[i];} // key 5 edits all GPS at once
-    else if( key == 85 ) [1,0,3,0,5,0,7,0] @=> keyArray;// key * edits all GPS DIAGONAL to listener 
-    else if( key == 87 ) [0,2,0,4,0,6,0,8] @=> keyArray;// key + edits all GPS ADJACENT to listener
-    <<< keyArray[0], keyArray[1], keyArray[2], keyArray[3], keyArray[4], keyArray[5], keyArray[6], keyArray[7] >>>;
-
+    if( nGrans == 8 ) // 8 speakers
+    {
+        if( key <= 97 && key >= 95 ) (key-94) => keyArray[(key-95)];
+        else if( key == 92 ) 8 => keyArray[7];
+        else if( key == 94 ) 4 => keyArray[3];
+        else if( key <= 91 && key >= 89 ) (-1 * key) + 96 => keyArray[(-1 * key) + 95];
+        else if( key == 93 ) for( int i; i < keyArray.size(); i++ ) {i+1 => keyArray[i];} // key 5 edits all GPS at once
+        else if( key == 85 ) [1,0,3,0,5,0,7,0] @=> keyArray;// key * edits all GPS DIAGONAL to listener 
+        else if( key == 87 ) [0,2,0,4,0,6,0,8] @=> keyArray;// key + edits all GPS ADJACENT to listener
+        <<< keyArray[0], keyArray[1], keyArray[2], keyArray[3], keyArray[4], keyArray[5], keyArray[6], keyArray[7] >>>;
+    }
+    else if( nGrans == 4 || mode == 0 ) // if perpendicular speaker arrangment
+    {
+        if( key == 96 ) (key-95) => keyArray[0];
+        else if( key == 93 ) for( int i; i < keyArray.size(); i++ ) {i+1 => keyArray[i];} // key 5 edits all GPS at once
+        else if( key == 94 ) (key-92) => keyArray[1];
+        else if( key == 90 ) (key-87) => keyArray[2];
+        else if( key == 92 ) (key-88) => keyArray[3];
+        <<< keyArray[0], keyArray[1], keyArray[2], keyArray[3] >>>;
+    }
+    else if( nGrans == 4 || mode == 1 ) // if angled speaker arrangment
+    {
+        if( key == 95 ) (key-94) => keyArray[0];
+        else if( key == 93 ) for( int i; i < keyArray.size(); i++ ) {i+1 => keyArray[i];} // key 5 edits all GPS at once
+        else if( key == 97 ) (key-95) => keyArray[1];
+        else if( key == 91 ) (key-98) => keyArray[2];
+        else if( key == 89 ) (key-85) => keyArray[3];
+        <<< keyArray[0], keyArray[1], keyArray[2], keyArray[3] >>>;
+    }
+    else if( nGrans == 2 ) // stereo or 2 granulators
+    {
+        if( key == 92 ) (key-91) => keyArray[0];
+        else if ( key == 94 ) (key-92) => keyArray[1];
+        <<< keyArray[0], keyArray[1] >>>;
+    }
 }
 
 fun void arrayOffChanger(int key)
@@ -960,7 +989,9 @@ fun void arrayOffChanger(int key)
     else if( key == 93 ) keyArray.zero(); // key 5 sets editMode to 0, which edits all GPS at once
     else if( key == 85 ) keyArray.zero(); // key * edits all GPS DIAGONAL to listener 
     else if( key == 87 ) keyArray.zero(); // key + edits all GPS ADJACENT to listener
-    <<< keyArray[0], keyArray[1], keyArray[2], keyArray[3], keyArray[4], keyArray[5], keyArray[6], keyArray[7] >>>;
+    if( nGrans == 8 ) <<< keyArray[0], keyArray[1], keyArray[2], keyArray[3], keyArray[4], keyArray[5], keyArray[6], keyArray[7] >>>;
+    else if( nGrans == 4 ) <<< keyArray[0], keyArray[1], keyArray[2], keyArray[3] >>>;
+    else if( nGrans == 2 ) <<< keyArray[0], keyArray[1] >>>;
 }
 
 for( int i; i < nGrans; i++)

@@ -15,7 +15,10 @@
 
     This is an adaptation of Kyle Spratt's "granular.ck" script, a simple granular synth with typical parameters and adjustable randomization.
     This script takes the # of addressable DAC channels and populates a granulator across each one. Granulators are accessed via the numpad, with each instance assigned to a number.
-    The first granulator is linked to "7" on the numpad, and the rest fill in the remaining numbers counter-clockwise from "7".
+    If you have 8 channels, the granulators should be assigned in a circular motion around your num pad. 
+    If you have 4 channels in a perpendicular fashion, set the "mode" variable to "0" and they will be assigned in a "cross" formation.
+    If you have 4 channels in an angled fashion, set the "mode" variable to "1" and they will be assigned in a "X" formation.
+    If you have 2 channels, they will be assigned to "4" and "6".
     The various parameters regarding the sound of the granualator, are stored in a class that is defined below, the GPS (Granular Parameter Storage).
     When you edit parameters of a GPS, that is what you are editing, each granulator has a unique GPS and ID. This allows the granulator to read the parameters of a certain GPS, and only that GPS.
     Enjoy! 

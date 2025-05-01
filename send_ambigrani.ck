@@ -28,7 +28,10 @@
         "Cursor Y-Axis" -- the y-axis placement controls the volume of the granulator. (Only active when a granulator is selected)
 
     When launching this script, you will specify whether you want 2 or 4 granulators (the second argument appropriately titled "howMany"). 
-    The granulators are then mapped to the numpad, assigning the first to "7" and the following granulators to "8", "9", and "6", counter clockwise around "5". If you choose 2 granulators, they will map to "7" and "8".
+    If you have 8 channels, the granulators should be assigned in a circular motion around your num pad. 
+    If you have 4 channels in a perpendicular fashion, set the "mode" variable to "0" and they will be assigned in a "cross" formation.
+    If you have 4 channels in an angled fashion, set the "mode" variable to "1" and they will be assigned in a "X" formation.
+    If you have 2 channels, they will be assigned to "4" and "6".
     If you would like to edit a parameter of a specific granulator, hold down it's num pad key and the keyboard will act as a control on that granulator. You can edit more than only granulator at a time. 
     If you would like to edit ALL granulators, hold down "5". The "*" key edits "7" & "9" (diagonal to "5") and "+" edits "8" and "6" (perpendicular to "5").
 
