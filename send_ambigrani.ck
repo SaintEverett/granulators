@@ -35,7 +35,7 @@
     If you would like to edit a parameter of a specific granulator, hold down it's num pad key and the keyboard will act as a control on that granulator. You can edit more than only granulator at a time. 
     If you would like to edit ALL granulators, hold down "5". The "*" key edits "7" & "9" (diagonal to "5") and "+" edits "8" and "6" (perpendicular to "5").
 
-    If you wish to modify this script, each variable, class, UGen, Event or function is labelled, so hot rodding this script should be easy. 
+    If you wish to modify this script, each variable, class, UGen, Event or function is labelled, so hot-rodding this script should be easy. 
 
     Direct any questions to carpee2 @ rpi.edu
 
