@@ -1,4 +1,4 @@
-w<h1 align="left">ChucK Granulators</h1>
+<h1 align="left">ChucK Granulators</h1>
 
 ###
 
