@@ -96,7 +96,8 @@ int keyArray[4]; // stores the current granulator you want to edit
 ["X","Y","Z","W","R","S","T","U","V"] @=> string coordinateMarkers[]; // just used to print messages for assurance
 [0,0,0,0] @=> int keyCount[];
 Event ready; // confirms everything is ready
-dac.channels() => nChans; // remember how many dac channels
+dac.channels() => nChans;
+nChans => nGrans; // remember how many dac channels
 
 if( dac.channels() < 8 )
 {
