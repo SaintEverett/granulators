@@ -84,12 +84,12 @@ for( int i; i < buffs.size(); i++ ) // set buffer interpretation
 {
     buffs[i].interp(2); // set buffer interpolation
 }
-Envelope env[8]; // envcelope for sound buffers
-Gain fader(0.8)[8]; // master faders
 0 => int whichGPS; // which GPS are you editing
 dac.channels() => nChans; // set how many outputs
 nChans => nGrans; // one granulator per channel
 WvOut recorders[nChans]; // recorders
+Envelope env[nChans]; // envcelope for sound buffers
+Gain fader(0.8)[nChans]; // master faders
 int keyArray[nChans]; // keyarray for what you're editing
 // check the command line
 if( !me.args() ) 
