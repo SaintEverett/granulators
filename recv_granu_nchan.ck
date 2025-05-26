@@ -716,8 +716,8 @@ fun void gpsEditor(int key)
         {
             if( keyArray[i] != 0 )
             {
-                myGPS[i].pitch - 0.0000025 => myGPS[i].pitch_target;
-                if( print ) <<< "pitch: ", myGPS[i].pitch_target >>>;
+                myGPS[i].rand_pitch - 0.025 => myGPS[i].rand_pitch;
+                if( print ) <<< "rando of pitch: ", myGPS[i].rand_pitch >>>;
             }
         }
     }
@@ -727,8 +727,8 @@ fun void gpsEditor(int key)
         {
             if( keyArray[i] != 0 )
             {
-                myGPS[i].pitch + 0.0000025 => myGPS[i].pitch_target;
-                if( print ) <<< "pitch: ", myGPS[i].pitch_target >>>;
+                myGPS[i].rand_pitch + 0.025 => myGPS[i].rand_pitch;
+                if( print ) <<< "rando of pitch: ", myGPS[i].rand_pitch >>>;
             }
         }
     }
