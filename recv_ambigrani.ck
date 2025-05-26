@@ -881,7 +881,7 @@ fun void arrayOnChanger(int key)
         else if( key == 87 ) [0,2,0,4,0,6,0,8] @=> keyArray;// key + edits all GPS ADJACENT to listener
         <<< keyArray[0], keyArray[1], keyArray[2], keyArray[3], keyArray[4], keyArray[5], keyArray[6], keyArray[7] >>>;
     }
-    else if( nGrans == 4 || mode == 0 ) // if perpendicular speaker arrangment
+    else if( nGrans == 4 && mode == 0 ) // if perpendicular speaker arrangment
     {
         if( key == 96 ) (key-95) => keyArray[0];
         else if( key == 93 ) for( int i; i < keyArray.size(); i++ ) {i+1 => keyArray[i];} // key 5 edits all GPS at once
@@ -890,7 +890,7 @@ fun void arrayOnChanger(int key)
         else if( key == 92 ) (key-88) => keyArray[3];
         <<< keyArray[0], keyArray[1], keyArray[2], keyArray[3] >>>;
     }
-    else if( nGrans == 4 || mode == 1 ) // if angled speaker arrangment
+    else if( nGrans == 4 && mode == 1 ) // if angled speaker arrangment
     {
         if( key == 95 ) (key-94) => keyArray[0];
         else if( key == 93 ) for( int i; i < keyArray.size(); i++ ) {i+1 => keyArray[i];} // key 5 edits all GPS at once
@@ -902,6 +902,7 @@ fun void arrayOnChanger(int key)
     else if( nGrans == 2 ) // stereo or 2 granulators
     {
         if( key == 92 ) (key-91) => keyArray[0];
+        else if( key == 93 ) for( int i; i < keyArray.size(); i++ ) {i+1 => keyArray[i];} // key 5 edits all GPS at once
         else if ( key == 94 ) (key-92) => keyArray[1];
         <<< keyArray[0], keyArray[1] >>>;
     }
@@ -909,16 +910,42 @@ fun void arrayOnChanger(int key)
 
 fun void arrayOffChanger(int key)
 {
-    if( key <= 97 && key >= 95 ) 0 => keyArray[(key-95)];
-    else if( key == 92 ) 0 => keyArray[7];
-    else if( key == 94 ) 0 => keyArray[3];
-    else if( key <= 91 && key >= 89 ) 0 => keyArray[(-1 * key) + 95];
-    else if( key == 93 ) keyArray.zero(); // key 5 sets editMode to 0, which edits all GPS at once
-    else if( key == 85 ) keyArray.zero(); // key * edits all GPS DIAGONAL to listener 
-    else if( key == 87 ) keyArray.zero(); // key + edits all GPS ADJACENT to listener
-    if( nGrans == 8 ) <<< keyArray[0], keyArray[1], keyArray[2], keyArray[3], keyArray[4], keyArray[5], keyArray[6], keyArray[7] >>>;
-    else if( nGrans == 4 ) <<< keyArray[0], keyArray[1], keyArray[2], keyArray[3] >>>;
-    else if( nGrans == 2 ) <<< keyArray[0], keyArray[1] >>>;
+    if( nGrans == 8 ) // 8 speakers
+    {
+        if( key <= 97 && key >= 95 ) 0 => keyArray[(key-95)];
+        else if( key == 92 ) 0 => keyArray[7];
+        else if( key == 94 ) 0 => keyArray[3];
+        else if( key <= 91 && key >= 89 ) 0 => keyArray[(-1 * key) + 95];
+        else if( key == 93 ) for( int i; i < keyArray.size(); i++ ) {0 => keyArray[i];} // key 5 edits all GPS at once
+        else if( key == 85 ) keyArray.zero();// key * edits all GPS DIAGONAL to listener 
+        else if( key == 87 ) keyArray.zero();// key + edits all GPS ADJACENT to listener
+        <<< keyArray[0], keyArray[1], keyArray[2], keyArray[3], keyArray[4], keyArray[5], keyArray[6], keyArray[7] >>>;
+    }
+    else if( nGrans == 4 && mode == 0 ) // if perpendicular speaker arrangment
+    {
+        if( key == 96 ) 0 => keyArray[0];
+        else if( key == 93 ) for( int i; i < keyArray.size(); i++ ) {0 => keyArray[i];} // key 5 edits all GPS at once
+        else if( key == 94 ) 0 => keyArray[1];
+        else if( key == 90 ) 0 => keyArray[2];
+        else if( key == 92 ) 0 => keyArray[3];
+        <<< keyArray[0], keyArray[1], keyArray[2], keyArray[3] >>>;
+    }
+    else if( nGrans == 4 && mode == 1 ) // if angled speaker arrangment
+    {
+        if( key == 95 ) 0 => keyArray[0];
+        else if( key == 93 ) for( int i; i < keyArray.size(); i++ ) {0 => keyArray[i];} // key 5 edits all GPS at once
+        else if( key == 97 ) 0 => keyArray[1];
+        else if( key == 91 ) 0 => keyArray[2];
+        else if( key == 89 ) 0 => keyArray[3];
+        <<< keyArray[0], keyArray[1], keyArray[2], keyArray[3] >>>;
+    }
+    else if( nGrans == 2 ) // stereo or 2 granulators
+    {
+        if( key == 92 ) 0 => keyArray[0];
+        else if( key == 93 ) for( int i; i < keyArray.size(); i++ ) {0 => keyArray[i];} // key 5 edits all GPS at once
+        else if ( key == 94 ) 0 => keyArray[1];
+        <<< keyArray[0], keyArray[1] >>>;
+    }
 }
 
 fun void ambiGrani()
