@@ -89,7 +89,7 @@ for( auto x : mailBox ) // set your port for OSC
 
 GranularSupport assistant;
 Granulator grain(filename)[nGrans];
-Gain sum(nGrans/1.0)[nGrans];
+Gain sum(1.0/nGrans)[nGrans];
 
 // all the OSC addresses
 mailBox[0].addAddress("/keypresses/down");
