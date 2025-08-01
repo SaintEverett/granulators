@@ -1,7 +1,7 @@
 public class Granulator extends Chugraph
 {
     SndBuf buffer;
-    WinFuncEnv env;
+    WinFuncEnv env[2];
     int id; // unique id
     string filename; // audio file
     // parameters of the granulator 
@@ -28,16 +28,21 @@ public class Granulator extends Chugraph
         file => filename;
         buffer.read(filename);
         if(buffer.ready() == 0) <<< "buffer #", id, "encountered issues" >>>;
-        env.setBlackmanHarris();
-        // patchbay
-        buffer => env => outlet;
+        for(int i; i < env.size(); i++)
+        {
+            // patchbay
+            env[i].gain(0.95);
+            buffer => env[i] => outlet;
+            env[i].setBlackmanHarris();
+        }
         buffer.samples() => samples; // give GPS sample count from associated buffer
         gain_target => buffer.gain; // set buffer gain
     }
 
     fun void fileChange(string n_filename)
     {
-        env.keyOff(); // ensure we are silent
+        env[0].keyOff(); // ensure we are silent
+        env[1].keyOff();
         buffer.read(n_filename); // try to read
         if(buffer.ready() == 0 ) <<< "buffer #", "encountered issues after trying to change source file" >>>; // if it didn't read well then say so
         n_filename => filename; // assuming this is now the currently playing file, officially change the variable
@@ -112,8 +117,11 @@ public class Granulator extends Chugraph
     fun void grain()
     { 
         0.0 => grain_length; // can be changed to acheive a more varying asynchronous envelope for each grain duration
-        grain_duration*0.5::ms => env.attackTime; 
-        grain_duration*0.5::ms => env.releaseTime;
+        for(int i; i < env.size(); i++)
+        {
+            grain_duration*0.5::ms => env[i].attackTime; 
+            grain_duration*0.5::ms => env[i].releaseTime;
+        }
         // go!
         while( true )
         {   
@@ -121,16 +129,21 @@ public class Granulator extends Chugraph
             Std.rand2f( Math.max(1.0, grain_duration - rand_grain_duration),
             grain_duration + rand_grain_duration) => grain_length;
             // compute grain duration for envelope
-            grain_duration*0.5::ms => env.attackTime; 
-            grain_duration*0.5::ms => env.releaseTime;
+            for(int i; i < env.size(); i++)
+            {
+                grain_duration*0.5::ms => env[i].attackTime; 
+                grain_duration*0.5::ms => env[i].releaseTime;
+            }
             // set buffer playback rate
             Std.rand2f( Math.max(0.0625, pitch - rand_pitch), pitch + rand_pitch ) => buffer.rate;
             // set buffer position
             Std.rand2( Math.max(1, position - rand_position ) $ int,
             Math.min( samples, position + rand_position ) $ int ) => buffer.pos;
-            env.keyOn(); // enable envelope
+            env[1].keyOff();
+            env[0].keyOn(); // enable envelope
             grain_length*0.5::ms => now; // wait for rise
-            env.keyOff(); // close envelope
+            env[1].keyOn(); // crossfade
+            env[0].keyOff(); // close envelope
             grain_length*0.5::ms => now; // wait
             pause => now; // until next grain
             if( spacer%2 ) Std.rand2f(200,1000)::ms => now; // if the spacer is enabled, it will cause random pauses between grains
