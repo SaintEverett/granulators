@@ -41,6 +41,7 @@
 
 @import "granular_class.ck"
 @import "granular_support.ck"
+@import "spectra_class.ck"
 
 // instantiation
 int nGrans; // number of desired grains (specified in command line)
@@ -91,6 +92,7 @@ for( auto x : mailBox ) // set your port for OSC
 GranularSupport assistant;
 Granulator grain(filename)[nGrans];
 FFT fft[nGrans];
+Spectra closet[nGrans];
 Gain sum(1.0/nGrans)[nGrans];
 Event sync[nGrans];
 
@@ -105,14 +107,22 @@ mailBox[1].addAddress("/keypresses/up");
 mailBox[2].addAddress("/trackpad/x");
 mailBox[3].addAddress("/trackpad/y");
 
-fun void spectrum(FFT n_fft, Granulator n_gran)
+fun void spectrum(FFT n_fft, Granulator n_gran, Spectra storage)
 {
-    n_gran => n_fft => blackhole;
+    Flux flu;
+    storage.Spectra(n_fft.size()/2);
+    SFM sfm;
+    n_gran => n_fft =^ sfm =^ flu => blackhole;
+    Windowing.hann(n_fft.size()) => n_fft.window;
     Event go;
-    spork ~ printFFT(n_fft, go);
+    // spork ~ printFFT(n_fft, go);
     while(true)
     {
-        n_fft.size()*0.5::samp => now;
+        for(int i; i < (n_fft.size()/2); i++)
+        {
+            n_fft.cval(i) $ polar => storage.magphas[i];
+        }
+        n_fft.size()::samp => now;
         n_fft.upchuck();
         go.broadcast();
     }
@@ -328,7 +338,7 @@ spork ~ mouseYListen();
 
 for(int i; i < grain.size(); i++)
 {
-    spork ~ spectrum(fft[0], grain[0]);
+    spork ~ spectrum(fft[0], grain[0], closet[0]);
     grain[i].play();
     grain[i] => sum[i] => dac;
     1 => assistant.print;
