@@ -20,7 +20,7 @@ public class Granulator extends Chugraph
     // targets
     float position_target; // where the position slew wants to go
     1.0 => float pitch_target; // where the pitch slew wants to go
-    0.0 => float gain_target; // where the volume slew wants to go
+    1.0 => float gain_target; // where the volume slew wants to go
     0.0 => float temp_gain;
 
     fun void Granulator(string file)

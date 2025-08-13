@@ -448,6 +448,7 @@ spork ~ printer();
 
 while( true )
 {
+    hi => now;
     if( msg.isButtonDown() )
     {
         if( msg.ascii == 27 )

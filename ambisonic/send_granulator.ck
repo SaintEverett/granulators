@@ -87,9 +87,6 @@ else if( me.args() == 4 )
 cherr <= "You're sending mail to " <= address <= IO.newline()
       <= " on port " <= port <= IO.newline();
 
-// open keyboard (get device number from command line)
-if( !hi.openKeyboard( device ) ) me.exit();
-cherr <= "keyboard '" <= hi.name() <= "' ready" <= "" <= IO.newline();
 
 for( int i;i < mailMan.size(); i++ )
 {

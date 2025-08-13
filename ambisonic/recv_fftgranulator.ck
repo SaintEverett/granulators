@@ -92,7 +92,7 @@ for( auto x : mailBox ) // set your port for OSC
 GranularSupport assistant;
 Granulator grain(filename)[nGrans];
 FFT fft[nGrans];
-Spectra closet[nGrans];
+Spectra closet(512)[nGrans];
 Gain sum(1.0/nGrans)[nGrans];
 Event sync[nGrans];
 
@@ -110,12 +110,12 @@ mailBox[3].addAddress("/trackpad/y");
 fun void spectrum(FFT n_fft, Granulator n_gran, Spectra storage)
 {
     Flux flu;
-    storage.Spectra(n_fft.size()/2);
     SFM sfm;
     n_gran => n_fft =^ sfm =^ flu => blackhole;
     Windowing.hann(n_fft.size()) => n_fft.window;
     Event go;
     // spork ~ printFFT(n_fft, go);
+    spork ~ grainSize(n_gran, storage);
     while(true)
     {
         for(int i; i < (n_fft.size()/2); i++)
@@ -125,6 +125,20 @@ fun void spectrum(FFT n_fft, Granulator n_gran, Spectra storage)
         n_fft.size()::samp => now;
         n_fft.upchuck();
         go.broadcast();
+    }
+}
+
+fun void grainSize(Granulator m_gran, Spectra values)
+{
+    float mag[values.size];
+    while(true)
+    {
+        for(int i; i < values.size; i++)
+        {
+            values.magphas[i].mag => mag[i];
+            Std.scalef(mag[values.size/2], 0.0, 1.0, 35.0, 560) => m_gran.grain_duration;
+        }
+        500::ms => now;
     }
 }
 
@@ -338,7 +352,7 @@ spork ~ mouseYListen();
 
 for(int i; i < grain.size(); i++)
 {
-    spork ~ spectrum(fft[0], grain[0], closet[0]);
+    spork ~ spectrum(fft[i], grain[i], closet[i]);
     grain[i].play();
     grain[i] => sum[i] => dac;
     1 => assistant.print;
@@ -351,7 +365,6 @@ if( !hi.openKeyboard( device ) ) me.exit();
 // print your identity
 cherr <= "Your name is " <= hostname <= IO.newline()
       <= "You're getting mail on port " <= port <= IO.newline();
-
 
 // go!
 while( true ) // the main thread is simply responsible for when to close, it just sits and waits for you to press the esc key

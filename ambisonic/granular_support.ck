@@ -226,7 +226,7 @@ public class GranularSupport
             if( print ) <<< "randomness of pitch: ", gran.rand_pitch >>>;
         }
     }
-    
+
     fun void mouse(float placement[], Granulator gran)
     {
         ((Math.pow((placement[0] - 0.0),4) * (gran.grainSizeMax - gran.grainSizeMin) + gran.grainSizeMin)) => gran.grain_duration;
