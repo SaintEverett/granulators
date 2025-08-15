@@ -1,7 +1,7 @@
 @import "granular_class.ck"
 @import "granular_support.ck"
 
-Granulator grain("india.wav");
+Granulator grain("screaming_05.08.2025_excerpt.wav");
 GranularSupport assistance;
 1 => assistance.print;
 Gain wet(0.0);

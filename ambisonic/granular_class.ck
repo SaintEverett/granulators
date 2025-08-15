@@ -139,10 +139,8 @@ public class Granulator extends Chugraph
             // set buffer position
             Std.rand2( Math.max(1, position - rand_position ) $ int,
             Math.min( samples, position + rand_position ) $ int ) => buffer.pos;
-            env[1].keyOff();
             env[0].keyOn(); // enable envelope
             grain_length*0.5::ms => now; // wait for rise
-            env[1].keyOn(); // crossfade
             env[0].keyOff(); // close envelope
             grain_length*0.5::ms => now; // wait
             pause => now; // until next grain
