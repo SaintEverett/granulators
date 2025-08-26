@@ -1,47 +1,70 @@
 @import "granular_class.ck"
 @import "granular_support.ck"
 
-Granulator grain("screaming_05.08.2025_excerpt.wav");
-GranularSupport assistance;
-1 => assistance.print;
-Gain wet(0.0);
-Gain dry(0.0);
-Gain input(0.0);
-JCRev reverb;
-reverb.mix(1.0);
-
-grain => input => wet => reverb => dac;
-grain => input => dry => dac;
-
-Hid key;
-HidMsg msg;
-int transport;
 0 => int device;
-0 => int play;
-1.0 => float speed;
-0.5 => float grainsize;
+if(me.args()) me.arg(0) => Std.atoi => device; // what hid device
 
-if(me.args()) me.arg(0) => Std.atoi => device;
+Granulator grain("hit.wav");
+GranularSupport assistance; // helper to interpret hid
+1 => assistance.print; // print out control messages
+Gain wet(0.0); // wet gain
+Gain dry(0.0); // dry gain
+Gain input(0.0); // input stage
+JCRev reverb; // reverb
+reverb.mix(1.0); // full mix
+
+grain => input => wet => reverb => dac; // wet chain
+grain => input => dry => dac; // dry chain
+
+Hid key; // hid
+HidMsg msg; // hid decrypt
+int transport; // marker for position in file
+
+0 => int current;
+0 => int play; // 0 stop 1 play
+0 => int mode; // pause, loop, ping pong
+1.0 => float speed; // negative backwards, positive forward, max of 4 times the original speed
+85.0 => float grainsize; // how long are grains
+grainsize => grain.grain_duration;
+
 if(!key.openKeyboard(device)) {cherr <= "Could not open specified HID device"; me.exit();}
 
 fun void clock(int start, int stop, Granulator g)
 {
     if(start == stop) me.exit();
-    int current;
-    stop => int end;
+    
     while(true)
     {
-        if(current < stop)
+        if(play)
         {
-            if(speed) 1 +=> current;
-            else 1 -=> current;
-            Math.clampi(current, 0, end) => current => g.position_target;
-            // cherr <= speed <= IO.newline();
-            if(speed != 0.0 && play) 1*(1.0/Math.fabs(speed))::samp => now;
-            else 10::ms => now;
+            if(edgeCase(start, stop, g))
+            {
+                if(Math.sgn(speed) == 1) 1 +=> current;
+                else if(Math.sgn(speed) == -1) 1 -=> current;
+                Math.clampi(current, 0, stop) => current => g.position_target;
+                (1.0/Math.fabs(speed))::samp => now;
+            }  
         }
-        else 10::ms => now;
+        else 1::samp => now;
     }
+}
+
+fun int edgeCase(int m_start, int m_stop, Granulator m_g)
+{
+    if(current == 0)
+    {
+        if(mode == 0) return 1;
+        else if(mode == 1) return 1;
+        else if(mode == 2) {-1.0 * speed => speed; return 1;}
+    }
+    else if(current == m_stop)
+    {
+        if(mode == 0) {0 => current; 0 => play; return 1;}
+        else if(mode == 1) {0 => current; 1 => play; return 1;}
+        else if(mode == 2) {-1.0 * speed => speed; return 1;}
+    }
+    else if(current < m_stop && current > 0) return 1;
+    return 0;
 }
 
 grain.play();
@@ -107,7 +130,12 @@ while(true)
             }
             else if(msg.key == 45 || msg.key == 46)
             {
-                cherr <= "nuh uh uh" <= IO.newline();
+                1 +=> mode;
+                mode%3 => mode;
+                if(mode == 0) cherr <= "no loop";
+                else if(mode == 1) cherr <= "loop";
+                else if(mode == 2) cherr <= "ping-pong";
+                cherr <= IO.newline();
             }
             else if(msg.key == 44) 
             {
