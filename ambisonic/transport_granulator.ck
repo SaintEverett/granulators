@@ -4,7 +4,7 @@
 0 => int device;
 if(me.args()) me.arg(0) => Std.atoi => device; // what hid device
 
-Granulator grain("hit.wav");
+Granulator grain("source.wav");
 GranularSupport assistance; // helper to interpret hid
 1 => assistance.print; // print out control messages
 Gain wet(0.0); // wet gain
