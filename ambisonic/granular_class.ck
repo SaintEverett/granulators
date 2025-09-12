@@ -127,12 +127,12 @@ public class Granulator extends Chugraph
         while( true )
         {   
             // compute grain length
-            if(rand_grain_duration) Std.rand2f( Math.max(1.0, grain_duration - rand_grain_duration), grain_duration + rand_grain_duration) => grain_duration;
+            Std.rand2f( Math.max(1.0, grain_duration - rand_grain_duration), grain_duration + rand_grain_duration) => grain_length;
             // compute grain duration for envelope
             for(int i; i < env.size(); i++)
             {
-                grain_duration*0.5::ms => env[i].attackTime; 
-                grain_duration*0.5::ms => env[i].releaseTime;
+                grain_length*0.5::ms => env[i].attackTime; 
+                grain_length*0.5::ms => env[i].releaseTime;
             }
             // set buffer playback rate
             if(rand_pitch) Std.rand2f( Math.max(0.0625, pitch - (rand_pitch/(pitchscale+1))), pitch + (rand_pitch/(pitchscale+1)) ) => buffer.rate;
@@ -141,9 +141,9 @@ public class Granulator extends Chugraph
             if(rand_position) Std.rand2( Math.max(1, position - rand_position ) $ int, Math.min( samples, position + rand_position ) $ int ) => buffer.pos;
             else position => buffer.pos;
             env[0].keyOn(); // enable envelope
-            grain_duration*0.5::ms => now; // wait for rise
+            grain_length*0.5::ms => now; // wait for rise
             env[0].keyOff(); // close envelope
-            grain_duration*0.5::ms => now; // wait
+            grain_length*0.5::ms => now; // wait
             pause => now; // until next grain
             if( spacer%2 ) Std.rand2f( Math.max(1.0, grain_duration - rand_grain_duration), grain_duration + rand_grain_duration)::ms => now; // if the spacer is enabled, it will cause random pauses between grains
         }

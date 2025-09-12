@@ -33,16 +33,19 @@ if(me.args()) me.arg(0) => Std.atoi => device; // what hid device
 0 => int mode;
 int ctrl_state;
 
-transportGran grain("digit.wav")[nchan];
+transportGran grain("composed3+whispering.wav")[nchan];
 DelayLine lines[3]; // 3 delay lines for each granulator
 WinFuncEnv entries[nchan]; // env for delays of each granulator
 GranularSupport assistance; // helper to interpret hid
 1 => assistance.print; // print out control messages
-Gain wet(0.0)[nchan+3]; // wet gain
-Gain dry(0.0)[nchan+3]; // dry gain
+Gain wet(0.0)[nchan]; // wet gain
+Gain dry(0.0)[nchan]; // dry gain
 Gain input(0.0)[nchan]; // input stage
 JCRev reverb[nchan]; // reverb
-100::ms => dur env_time;
+JCRev delay_verb[3]; // set and forget reverbs for delay lines
+Gain atten(0.35)[3];
+Shred stack[3][nchan];
+200::ms => dur env_time;
 
 for(int i; i < nchan; i++)
 {
@@ -56,10 +59,11 @@ for(int i; i < nchan; i++)
 
 for(int i; i < lines.size(); i++)
 {
-    lines[i] => wet[i+nchan] => dac;
-    lines[i] => dry[i+nchan] => dac;
     lines[i].DelayLine(((i+i+1)*178)::ms,(((i+i+1)*178)+4)::ms);
     lines[i].feedback(0.56);
+    delay_verb[i].mix(0.025444);
+    if(!i) lines[i] => atten[i] => delay_verb[i] => dac;
+    else if(i) lines[i] => atten[i] => delay_verb[i] => dac.chan(i-1);
 }
 
 Hid key; // hid
@@ -71,7 +75,10 @@ fun void keyOn(WinFuncEnv env_, int which)
 {
     env_ => lines[which];
     env_.keyOn();
-    env_time => now;
+    while(true)
+    {
+        env_time => now;
+    }
 }
 
 fun void keyOff(WinFuncEnv env_, int which)
@@ -218,7 +225,7 @@ while(true)
             else if(msg.key == 224)
             {
                 1 => ctrl_state;
-                cherr <= ctrl_state <= IO.newline();
+                //cherr <= ctrl_state <= IO.newline();
             }
             else if (msg.key == 82 || msg.key == 81)
             {
@@ -346,8 +353,8 @@ while(true)
                     {
                         if(keyArray[i] != 0)
                         {
+                            spork ~ keyOn(entries[i], (msg.key-58)/4) @=> stack[(msg.key-58)/4][i];
                             cherr <= "Opened grain " <= i <= " to delay line " <= (msg.key-58)/4 <= IO.newline();
-                            keyOn(entries[i], (msg.key-58)/4);
                         }
                     }
                 }
@@ -387,10 +394,12 @@ while(true)
             {
                 for(int i; i < nchan; i++)
                 {
-                    if(keyArray[i] != 0)
+                    if(!stack[(msg.key-58)/4][i].done())
                     {
-                        cherr <= "Closed grain " <= i <= " to delay line " <= (msg.key-58)/4 <= IO.newline();
-                        keyOff(entries[i], (msg.key-58)/4);
+                        cherr <= "exited" <= IO.newline();
+                        stack[(msg.key-58)/4][i].exit();
+                        cherr <= "Closing grain " <= i <= " from line " <= (msg.key-58)/4 <= IO.newline();
+                        spork ~ keyOff(entries[i], (msg.key-58)/4);
                     }
                 }
             }
@@ -406,7 +415,7 @@ while(true)
             else if(msg.key == 224)
             {
                 0 => ctrl_state;
-                cherr <= ctrl_state <= IO.newline();
+                //cherr <= ctrl_state <= IO.newline();
             }
         }
     }
