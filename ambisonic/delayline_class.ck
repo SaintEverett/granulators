@@ -14,7 +14,12 @@ public class DelayLine extends Chugraph
 
     fun void feedback(float coeff)
     {
-        if(coeff < 1.0 && coeff > -1.0) feed.gain(coeff);
-        else cherr <= IO.newline() <= "Feedback coefficient too crazy" <= IO.newline();
+        if(coeff <= 1.0 && coeff >= -1.0) feed.gain(coeff);
+        else cherr <= "Feedback coefficient too crazy" <= IO.newline();
+    }
+
+    fun float feedback()
+    {
+        return feed.gain();
     }
 }

@@ -31,8 +31,9 @@ dac.channels() => int nchan;
 int keyArray[nchan];
 if(me.args()) me.arg(0) => Std.atoi => device; // what hid device
 0 => int mode;
+int ctrl_state;
 
-transportGran grain("composed3.wav")[nchan];
+transportGran grain("digit.wav")[nchan];
 DelayLine lines[3]; // 3 delay lines for each granulator
 WinFuncEnv entries[nchan]; // env for delays of each granulator
 GranularSupport assistance; // helper to interpret hid
@@ -42,15 +43,17 @@ Gain dry(0.0)[nchan+3]; // dry gain
 Gain input(0.0)[nchan]; // input stage
 JCRev reverb[nchan]; // reverb
 100::ms => dur env_time;
+
 for(int i; i < nchan; i++)
 {
     reverb[i].mix(1.0); // full mix
     entries[i].attackTime(env_time);
     entries[i].releaseTime(env_time);
-    grain[i] => entries[i] => blackhole;
+    grain[i] => entries[i];
     grain[i] => input[i] => wet[i] => reverb[i] => dac.chan(i); // wet chain
     grain[i] => input[i] => dry[i] => dac.chan(i); // dry chain
 }
+
 for(int i; i < lines.size(); i++)
 {
     lines[i] => wet[i+nchan] => dac;
@@ -61,7 +64,6 @@ for(int i; i < lines.size(); i++)
 
 Hid key; // hid
 HidMsg msg; // hid decrypt
-int transport; // marker for position in file
 
 if(!key.openKeyboard(device)) {cherr <= "Could not open specified HID device"; me.exit();}
 
@@ -213,6 +215,11 @@ while(true)
             //cherr <= msg.key <= " " <= IO.newline();
             if(msg.key == 41) {cherr <= IO.newline() <= "Exiting" <= IO.newline(); me.exit();}
             else if( msg.key <= 97 && msg.key >= 84 ) spork ~ arrayOnChanger(msg.key);
+            else if(msg.key == 224)
+            {
+                1 => ctrl_state;
+                cherr <= ctrl_state <= IO.newline();
+            }
             else if (msg.key == 82 || msg.key == 81)
             {
                 for(int i; i < nchan; i++)
@@ -344,6 +351,23 @@ while(true)
                         }
                     }
                 }
+                
+                else if(ctrl_state)
+                {
+                    if(msg.key == 59 || msg.key == 63 || msg.key == 67) // if entry
+                    {
+                        (Math.fabs(lines[(msg.key-59)/4].feedback()) + Math.pow(0.5*lines[(msg.key-59)/4].feedback()+0.1, 2)) => float temp;
+                        lines[(msg.key-59)/4].feedback(Math.clampf(temp, 0.0, 1.0));
+                        cherr <= "Line " <= (msg.key-59)/4 <= " increased to " <= lines[(msg.key-59)/4].feedback() <= IO.newline();
+                    }
+                }
+
+                if(msg.key == 60 || msg.key == 64 || msg.key == 68) // if entry
+                {
+                    lines[(msg.key-60)/4].feedback() * -1.0 => float temp;
+                    lines[(msg.key-60)/4].feedback(Math.clampf(temp, -1.0, 1.0));
+                    cherr <= "Line " <= (msg.key-59)/4 <= " flipped to " <= lines[(msg.key-59)/4].feedback() <= IO.newline();
+                }
             }
             else 
             {
@@ -356,11 +380,9 @@ while(true)
                 }
             }
         }
-
         if (msg.isButtonUp())
         {
             if( msg.key <= 97 && msg.key >= 84 ) spork ~ arrayOffChanger(msg.key);
-
             else if(msg.key == 58 || msg.key == 62 || msg.key == 66) // if entry
             {
                 for(int i; i < nchan; i++)
@@ -371,6 +393,20 @@ while(true)
                         keyOff(entries[i], (msg.key-58)/4);
                     }
                 }
+            }
+            else if(!ctrl_state)
+            {
+                if(msg.key == 59 || msg.key == 63 || msg.key == 67) // if entry
+                {
+                    (Math.fabs(lines[(msg.key-59)/4].feedback()) - Math.pow(0.15*lines[(msg.key-59)/4].feedback()+0.1, 2)) => float temp;
+                    lines[(msg.key-59)/4].feedback(Math.clampf(temp, 0.0, 1.0));
+                    cherr <= "Line " <= (msg.key-59)/4 <= " decreased to " <= lines[(msg.key-59)/4].feedback() <= IO.newline();
+                }
+            }
+            else if(msg.key == 224)
+            {
+                0 => ctrl_state;
+                cherr <= ctrl_state <= IO.newline();
             }
         }
     }
