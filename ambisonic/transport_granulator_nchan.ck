@@ -1,5 +1,6 @@
 @import "granular_class.ck"
 @import "granular_support.ck"
+@import "delayline_class.ck"
 
 class transportGran extends Granulator
 {
@@ -32,17 +33,30 @@ if(me.args()) me.arg(0) => Std.atoi => device; // what hid device
 0 => int mode;
 
 transportGran grain("composed3.wav")[nchan];
+DelayLine lines[3]; // 3 delay lines for each granulator
+WinFuncEnv entries[nchan]; // env for delays of each granulator
 GranularSupport assistance; // helper to interpret hid
 1 => assistance.print; // print out control messages
-Gain wet(0.0)[nchan]; // wet gain
-Gain dry(0.0)[nchan]; // dry gain
+Gain wet(0.0)[nchan+3]; // wet gain
+Gain dry(0.0)[nchan+3]; // dry gain
 Gain input(0.0)[nchan]; // input stage
 JCRev reverb[nchan]; // reverb
+100::ms => dur env_time;
 for(int i; i < nchan; i++)
 {
     reverb[i].mix(1.0); // full mix
+    entries[i].attackTime(env_time);
+    entries[i].releaseTime(env_time);
+    grain[i] => entries[i] => blackhole;
     grain[i] => input[i] => wet[i] => reverb[i] => dac.chan(i); // wet chain
     grain[i] => input[i] => dry[i] => dac.chan(i); // dry chain
+}
+for(int i; i < lines.size(); i++)
+{
+    lines[i] => wet[i+nchan] => dac;
+    lines[i] => dry[i+nchan] => dac;
+    lines[i].DelayLine(((i+i+1)*178)::ms,(((i+i+1)*178)+4)::ms);
+    lines[i].feedback(0.56);
 }
 
 Hid key; // hid
@@ -50,6 +64,20 @@ HidMsg msg; // hid decrypt
 int transport; // marker for position in file
 
 if(!key.openKeyboard(device)) {cherr <= "Could not open specified HID device"; me.exit();}
+
+fun void keyOn(WinFuncEnv env_, int which)
+{
+    env_ => lines[which];
+    env_.keyOn();
+    env_time => now;
+}
+
+fun void keyOff(WinFuncEnv env_, int which)
+{
+    env_.keyOff();
+    env_time => now;
+    env_ =< lines[which];
+}
 
 fun void clock(transportGran g)
 {
@@ -303,6 +331,20 @@ while(true)
                 }
                 
             }
+            else if(msg.key <= 69 && msg.key >= 58)
+            {
+                if(msg.key == 58 || msg.key == 62 || msg.key == 66) // if entry
+                {
+                    for(int i; i < nchan; i++)
+                    {
+                        if(keyArray[i] != 0)
+                        {
+                            cherr <= "Opened grain " <= i <= " to delay line " <= (msg.key-58)/4 <= IO.newline();
+                            keyOn(entries[i], (msg.key-58)/4);
+                        }
+                    }
+                }
+            }
             else 
             {
                 for(int i; i < nchan; i++)
@@ -314,9 +356,22 @@ while(true)
                 }
             }
         }
-        else if (msg.isButtonUp())
+
+        if (msg.isButtonUp())
         {
             if( msg.key <= 97 && msg.key >= 84 ) spork ~ arrayOffChanger(msg.key);
+
+            else if(msg.key == 58 || msg.key == 62 || msg.key == 66) // if entry
+            {
+                for(int i; i < nchan; i++)
+                {
+                    if(keyArray[i] != 0)
+                    {
+                        cherr <= "Closed grain " <= i <= " to delay line " <= (msg.key-58)/4 <= IO.newline();
+                        keyOff(entries[i], (msg.key-58)/4);
+                    }
+                }
+            }
         }
     }
 }

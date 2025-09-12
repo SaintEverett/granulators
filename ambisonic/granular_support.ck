@@ -225,6 +225,13 @@ public class GranularSupport
             6.0 => gran.rand_pitch;
             if( print ) <<< "randomness of pitch: ", gran.rand_pitch >>>;
         }
+        else if( key == 56 )
+        {
+            if(gran.pitchscale) 0 => gran.pitchscale;
+            else 5 => gran.pitchscale;
+            if( print && gran.pitchscale) cherr <= "scale of randomness: low" <= IO.newline();
+            if( print && !gran.pitchscale) cherr <= "scale of randomness: high" <= IO.newline();
+        }
     }
 
     fun void mouse(float placement[], Granulator gran)
