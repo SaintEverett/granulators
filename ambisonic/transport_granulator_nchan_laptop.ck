@@ -20,28 +20,6 @@ class transportGran extends Granulator
         buffer.samples() => samples; // give GPS sample count from associated buffer
         gain_target => buffer.gain; // set buffer gain
     }
-    fun void transportGran(string file, string key)
-    {
-        file => filename;
-        buffer.read(filename);
-        if(key == "NASTY") buffer.interp(2); // change buffer interpolation mode for fun
-        if(buffer.ready() == 0) <<< "buffer #", id, "encountered issues" >>>;
-        for(int i; i < env.size(); i++)
-        {
-            // patchbay
-            env[i].gain(0.95);
-            if(key == "NASTY") 
-            {
-                LPF leaky_int;
-                leaky_int.set(22500,0.25);
-                buffer => leaky_int => env[i] => outlet;
-            } 
-            else buffer => env[i] => outlet;
-            env[i].setBlackmanHarris();
-        }
-        buffer.samples() => samples; // give GPS sample count from associated buffer
-        gain_target => buffer.gain; // set buffer gain
-    }
     0 => int current;
     0 => int play_; // 0 stop 1 play
     0 => int mode; // pause, loop, ping pong
@@ -56,7 +34,7 @@ if(me.args()) me.arg(0) => Std.atoi => device; // what hid device
 0 => int mode;
 int ctrl_state;
 
-transportGran grain("sunshine.wav", "NASTY")[nchan];
+transportGran grain("digit.wav")[nchan];
 DelayLine lines[3]; // 3 delay lines for each granulator
 WinFuncEnv entries[nchan]; // env for delays of each granulator
 GranularSupport assistance; // helper to interpret hid
@@ -85,9 +63,10 @@ for(int i; i < lines.size(); i++)
     lines[i].DelayLine(((i+i+1)*178)::ms,(((i+i+1)*178)+4)::ms);
     lines[i].feedback(0.56);
     delay_verb[i].mix(0.025444);
-    if(!i) lines[i] => atten[i] => delay_verb[i] => dac;
-    else if(i) lines[i] => atten[i] => delay_verb[i] => dac.chan(i-1);
 }
+
+lines[0] => atten[0] => delay_verb[0] => dac.chan(0);
+lines[2] => atten[2] => delay_verb[2] => dac.chan(1);
 
 Hid key; // hid
 HidMsg msg; // hid decrypt
@@ -344,13 +323,13 @@ while(true)
                     }
                 }
             }
-            else if(msg.key == 228 || msg.key == 230)
+            else if(msg.key == 75 || msg.key == 78)
             {
                 for(int i; i < nchan; i++)
                 {
                     if(keyArray[i] != 0)
                     {
-                        if(msg.key == 228)
+                        if(msg.key == 75)
                         {
                             Math.pow(grain[i].grainsize/2.0,4) + grain[i].grainsize + 0.001 => grain[i].grainsize;
                             Math.clampf(grain[i].grainsize, 0.0, 1.0) => grain[i].grainsize;
