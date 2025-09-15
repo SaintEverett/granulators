@@ -87,6 +87,7 @@ string hostname; // address to recieve OSC messages
 int port; // port to recieve OSC messages
 1 => int print; // print granulator changes or not
 0 => int device; // where are you getting HID messages
+0 => int mode;
 Hid hi; // keyboard 
 HidMsg msg; // keyboard reader
 OscIn mailBox[7]; // recieves OSC messages

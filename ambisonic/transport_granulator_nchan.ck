@@ -8,12 +8,35 @@ class transportGran extends Granulator
     {
         file => filename;
         buffer.read(filename);
+        buffer.interp(2); // change buffer interpolation mode for fun
         if(buffer.ready() == 0) <<< "buffer #", id, "encountered issues" >>>;
         for(int i; i < env.size(); i++)
         {
             // patchbay
             env[i].gain(0.95);
             buffer => env[i] => outlet;
+            env[i].setBlackmanHarris();
+        }
+        buffer.samples() => samples; // give GPS sample count from associated buffer
+        gain_target => buffer.gain; // set buffer gain
+    }
+    fun void transportGran(string file, string key)
+    {
+        file => filename;
+        buffer.read(filename);
+        if(key == "NASTY") buffer.interp(2); // change buffer interpolation mode for fun
+        if(buffer.ready() == 0) <<< "buffer #", id, "encountered issues" >>>;
+        for(int i; i < env.size(); i++)
+        {
+            // patchbay
+            env[i].gain(0.95);
+            if(key == "NASTY") 
+            {
+                LPF leaky_int;
+                leaky_int.set(22500,0.25);
+                buffer => leaky_int => env[i] => outlet;
+            } 
+            else buffer => env[i] => outlet;
             env[i].setBlackmanHarris();
         }
         buffer.samples() => samples; // give GPS sample count from associated buffer
@@ -33,7 +56,7 @@ if(me.args()) me.arg(0) => Std.atoi => device; // what hid device
 0 => int mode;
 int ctrl_state;
 
-transportGran grain("composed3+whispering.wav")[nchan];
+transportGran grain("digit.wav", "NASTY")[nchan];
 DelayLine lines[3]; // 3 delay lines for each granulator
 WinFuncEnv entries[nchan]; // env for delays of each granulator
 GranularSupport assistance; // helper to interpret hid
