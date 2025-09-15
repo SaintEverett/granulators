@@ -34,7 +34,7 @@ if(me.args()) me.arg(0) => Std.atoi => device; // what hid device
 0 => int mode;
 int ctrl_state;
 
-transportGran grain("digit.wav")[nchan];
+transportGran grain("source.wav")[nchan];
 DelayLine lines[3]; // 3 delay lines for each granulator
 WinFuncEnv entries[nchan]; // env for delays of each granulator
 GranularSupport assistance; // helper to interpret hid
