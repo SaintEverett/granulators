@@ -1,6 +1,6 @@
-@import "granular_class.ck"
-@import "granular_support.ck"
-@import "delayline_class.ck"
+@import "../classes/granular_class.ck"
+@import "../classes/granular_support.ck"
+@import "../classes/delayline_class.ck"
 
 class transportGran extends Granulator
 {
