@@ -28,13 +28,15 @@ class transportGran extends Granulator
 }
 
 dac.channels() => int nchan;
+string file;
 0 => int device;
 int keyArray[nchan];
-if(me.args()) me.arg(0) => Std.atoi => device; // what hid device
+if(me.args() == 1) me.arg(0) => Std.atoi => device; // what hid device
+if(me.args() == 2) me.arg(1) => file;
 0 => int mode;
 int ctrl_state;
 
-transportGran grain("../audio/composed3.wav")[nchan];
+transportGran grain(file)[nchan];
 DelayLine lines[3]; // 3 delay lines for each granulator
 WinFuncEnv entries[nchan]; // env for delays of each granulator
 GranularSupport assistance; // helper to interpret hid
@@ -44,7 +46,7 @@ Gain dry(0.0)[nchan]; // dry gain
 Gain input(0.0)[nchan]; // input stage
 JCRev reverb[nchan]; // reverb
 JCRev delay_verb[3]; // set and forget reverbs for delay lines
-Gain atten(0.35)[3];
+Gain atten(0.65)[3];
 Shred stack[3][nchan];
 200::ms => dur env_time;
 
