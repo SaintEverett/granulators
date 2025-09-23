@@ -44,8 +44,8 @@ GranularSupport assistance; // helper to interpret hid
 Gain wet(0.0)[nchan]; // wet gain
 Gain dry(0.0)[nchan]; // dry gain
 Gain input(0.0)[nchan]; // input stage
-JCRev reverb[nchan]; // reverb
-JCRev delay_verb[3]; // set and forget reverbs for delay lines
+NRev reverb[nchan]; // reverb
+NRev delay_verb[3]; // set and forget reverbs for delay lines
 Gain atten(0.65)[3];
 Shred stack[3][nchan];
 200::ms => dur env_time;
