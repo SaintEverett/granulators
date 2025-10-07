@@ -2,7 +2,6 @@ public class Granulator extends Chugraph
 {
     SndBuf buffer;
     WinFuncEnv env[2];
-    int id; // unique id
     string filename; // audio file
     // parameters of the granulator 
     800.0 => float grainSizeMax; // used as max grain size value in cursor scaling
@@ -14,7 +13,7 @@ public class Granulator extends Chugraph
     1 => int position; // this is in samples
     0 => int rand_position; // so is this
     0 => int pitchscale; // this will make randomized pitch more or less significant (its fun)
-    10::ms => dur pause;
+    5::ms => dur pause;
     float grain_length;
     int samples;
     int spacer;
@@ -45,7 +44,7 @@ public class Granulator extends Chugraph
         env[0].keyOff(); // ensure we are silent
         env[1].keyOff();
         buffer.read(n_filename); // try to read
-        if(buffer.ready() == 0 ) <<< "buffer #", "encountered issues after trying to change source file" >>>; // if it didn't read well then say so
+        if(!buffer.ready()) <<< "buffer #", "encountered issues after trying to change source file" >>>; // if it didn't read well then say so
         n_filename => filename; // assuming this is now the currently playing file, officially change the variable
     }
 

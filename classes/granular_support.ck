@@ -1,4 +1,4 @@
-public class GranularSupport
+public class GranularSupport // carbon copy of keyboard mapping from Everett
 {
     int print;
     fun void key(int key, Granulator gran) // huge interface layer 
@@ -26,24 +26,12 @@ public class GranularSupport
         {
             Math.min(gran.samples, gran.position + 11000) => gran.position_target;
             if( print ) <<< "position: ", gran.position_target >>>;
-            /*
-
-                Math.min`(gran.samples, gran.position + 11000) => gran.position_target;
-                if( print ) <<< "position: ", gran.position_target >>>;
-            }
-            */
         }
         // and step back via -
         else if( key == 45 )
         {
             Math.max(1, gran.position - 11000) => gran.position_target;
             if( print ) <<< "position: ", gran.position_target >>>;
-            /*
-
-                Math.max(1, gran.position - 11000) => gran.position_target;
-                if( print ) <<< "position: ", gran.position_target >>>;
-            }
-            */
         }
         // random grain duration
         else if( key == 229 )
