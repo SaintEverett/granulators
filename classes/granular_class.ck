@@ -27,7 +27,7 @@ public class Granulator extends Chugraph
     {
         file => filename;
         buffer.read(filename);
-        if(buffer.ready() == 0) <<< "buffer #", id, "encountered issues" >>>;
+        if(buffer.ready() == 0) <<< "buffer #", "encountered issues" >>>;
         for(int i; i < env.size(); i++)
         {
             // patchbay
