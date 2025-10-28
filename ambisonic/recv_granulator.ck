@@ -39,8 +39,8 @@
 
 */
 
-@import "granular_class.ck"
-@import "granular_support.ck"
+@import "../classes/ambisonic_granular_class.ck"
+@import "../classes/ambisonic_granular_support.ck"
 
 // instantiation
 int nGrans; // number of desired grains (specified in command line)
@@ -87,8 +87,10 @@ for( auto x : mailBox ) // set your port for OSC
     port => x.port; // set port
 }
 
-GranularSupport assistant;
-Granulator grain(filename)[nGrans];
+AmbiGranularSupport assistant;
+AmbiGranulator grain(filename)[nGrans];
+Encode3 enc[nGrans];
+BFormat3 bform;
 Gain sum(1.0/nGrans)[nGrans];
 
 // all the OSC addresses
@@ -283,6 +285,16 @@ fun void arrayOffChanger(int key)
     }
 }
 
+fun void updateEncoder(AmbiGranulator g, Encode3 encoder)
+{
+    while(true)
+    {
+        g.newAziZen => now;
+        encoder.pos(g.azimuth, g.zenith);
+        5::ms => now;
+    }
+}
+
 // spork off OSC recievers
 spork ~ keyOnListen();
 spork ~ keyOffListen();
@@ -291,8 +303,11 @@ spork ~ mouseYListen();
 
 for(int i; i < grain.size(); i++)
 {
+    enc[i].gain(1.0/nGrans);
     grain[i].play();
+    spork ~ updateEncoder(grain[i], enc[i]);
     grain[i] => sum[i] => dac;
+    grain[i] => enc[i] => bform => blackhole; // patch this 
     1 => assistant.print;
 }
 
@@ -303,7 +318,6 @@ if( !hi.openKeyboard( device ) ) me.exit();
 // print your identity
 cherr <= "Your name is " <= hostname <= IO.newline()
       <= "You're getting mail on port " <= port <= IO.newline();
-
 
 // go!
 while( true ) // the main thread is simply responsible for when to close, it just sits and waits for you to press the esc key
