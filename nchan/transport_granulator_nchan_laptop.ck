@@ -9,7 +9,7 @@ class transportGran extends Granulator
         file => filename;
         buffer.read(filename);
         buffer.interp(2); // change buffer interpolation mode for fun
-        if(buffer.ready() == 0) <<< "buffer #", id, "encountered issues" >>>;
+        if(buffer.ready() == 0) <<< "buffer encountered issues" >>>;
         for(int i; i < env.size(); i++)
         {
             // patchbay

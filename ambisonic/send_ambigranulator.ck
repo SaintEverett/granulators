@@ -4,7 +4,7 @@
     Credits: Rob Hamilton, Ge Wang, Baek San Chang and Kyle Spratt -- The sound source used in this script is a modification of Spratt's 'granular.ck'
     
     #----- [HOW TO USE] -----#
-    This is the send  end of an OSC communication pair. Simply launch this script along with it's partner 'recv_ambigrani.ck'
+    This is the send end of an OSC communication pair. Simply launch this script along with it's partner 'recv_ambigrani.ck'
     This script will recieve control data from the other end of the OSC pipe. Just ensure they are sending and recieving on the same address.
     To see the arguments required for this script, attempt to run it in MiniAudicle or the cmd line. 
     #------------------------#
@@ -69,14 +69,9 @@ else if( me.args() == 1 )
 else if( me.args() == 2 )
 {
     me.arg(0) => address;
-    6449 => port;
-}
-else if( me.args() == 3 )
-{
-    me.arg(0) => address;
     me.arg(1) => Std.atoi => port;
 }
-else if( me.args() == 4 )
+else if( me.args() == 3 )
 {
     me.arg(0) => address;
     me.arg(1) => Std.atoi => port;
@@ -87,6 +82,10 @@ else if( me.args() == 4 )
 cherr <= "You're sending mail to " <= address <= IO.newline()
       <= " on port " <= port <= IO.newline();
 
+
+// open keyboard 
+if( !hi.openKeyboard( device ) ) me.exit();
+<<< "keyboard '" + hi.name() + "' ready", "" >>>;
 
 for( int i;i < mailMan.size(); i++ )
 {
@@ -116,7 +115,7 @@ fun void shipHID()
 
                 mailMan[1].send();
 
-                // cherr <= "up sent" <= IO.newline();
+                //cherr <= "up sent" <= IO.newline();
             }
         }
     }
@@ -165,9 +164,10 @@ spork ~ trackpadTracker();
 
 while( true )
 {
+    hi => now;
     if( msg.isButtonDown() )
     {
-        if( msg.ascii == 27 )
+        if( msg.key == 41 )
         {
             cherr <= IO.newline() <= "exiting";
             300::ms => now;

@@ -184,15 +184,15 @@ public class AmbiGranulator extends Chugraph
             zenith + deltaZen => zenith;
             if( zenith > 360.0 ) zenith - 360.0 => zenith;
             if( zenith < 0 ) zenith + 360.0 => zenith;
-            50::ms => now;
+            100::ms => now;
             newAziZen.signal();
         }
     }
 
     fun void Velocities(float azive, float zenive)
     {
-        azive/20.0 => aziVelocity;
-        zenive/20.0 => zeniVelocity;
+        azive/10.0 => aziVelocity;
+        zenive/10.0 => zeniVelocity;
     }
 
     fun void Velocities()

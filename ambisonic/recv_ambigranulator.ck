@@ -90,7 +90,8 @@ for( auto x : mailBox ) // set your port for OSC
 AmbiGranularSupport assistant;
 AmbiGranulator grain(filename)[nGrans];
 Encode3 enc[nGrans];
-BFormat3 bform;
+WvOut record[enc[0].channels()]; // record
+BFormat3 bform(1.0);
 Gain sum(1.0/nGrans)[nGrans];
 
 // all the OSC addresses
@@ -306,10 +307,17 @@ for(int i; i < grain.size(); i++)
     enc[i].gain(1.0/nGrans);
     grain[i].play();
     spork ~ updateEncoder(grain[i], enc[i]);
-    grain[i] => sum[i] => dac;
-    grain[i] => enc[i] => bform => blackhole; // patch this 
+    grain[i] => enc[i] => bform => blackhole; // patch this to decoder
     1 => assistant.print;
 }
+
+for(int i; i < bform.channels(); i++)
+{
+    bform.chan(i) => record[i] => blackhole;
+    record[i].wavFilename("bash-put"+"_"+i);
+}
+
+grain[0] => dac;
 
 // open keyboard 
 if( !hi.openKeyboard( device ) ) me.exit();
@@ -322,7 +330,6 @@ cherr <= "Your name is " <= hostname <= IO.newline()
 // go!
 while( true ) // the main thread is simply responsible for when to close, it just sits and waits for you to press the esc key
 {
-    hi => now;
     while( hi.recv( msg ))
     {
         if( msg.isButtonDown() )
@@ -331,6 +338,10 @@ while( true ) // the main thread is simply responsible for when to close, it jus
             if( msg.ascii == 27 )
             {
                 cherr <= "exiting the Dopethrone" <= IO.newline();
+                for(int i; i < record.size(); i++)
+                {
+                    record[i].closeFile(); // safely exit
+                }
                 400::ms => now;
                 me.exit();
             }
