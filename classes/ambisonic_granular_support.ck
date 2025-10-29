@@ -220,12 +220,22 @@ public class AmbiGranularSupport // carbon copy of keyboard mapping from Everett
             if( print && gran.pitchscale) cherr <= "scale of randomness: low" <= IO.newline();
             if( print && !gran.pitchscale) cherr <= "scale of randomness: high" <= IO.newline();
         }
+        else if( key == 80 )
+        {
+            Math.clampf(gran.grain_duration - (gran.grain_duration/5.0),7.5,900.0) => gran.grain_duration;
+            if( print ) <<< "grain duration: ", gran.grain_duration >>>;
+        }
+        else if( key == 79 )
+        {
+            Math.clampf(gran.grain_duration + (gran.grain_duration/5.0),7.5,900.0) => gran.grain_duration;
+            if( print ) <<< "grain duration: ", gran.grain_duration >>>;
+        }
     }
 
     fun void mouse(float placement[], AmbiGranulator gran)
     {
-        ((Math.pow((placement[0] - 0.0),4) * (gran.grainSizeMax - gran.grainSizeMin) + gran.grainSizeMin)) => gran.grain_duration;
         placement[1] => gran.gain_target;
-        ((Math.pow((placement[0] - 0.0),4) * (90.0 - -90.0) + -90.0)) => gran.aziVelocity;
+        ((placement[0] * (90.0 + 90.0)) - 90.0) => gran.aziVelocity;
+        // gran.Velocities();
     }
 }

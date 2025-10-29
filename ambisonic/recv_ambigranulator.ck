@@ -57,8 +57,6 @@ OscMsg letterOpener; // OSC reader
 
 int keyArray[8]; // stores the current granulator you want to edit
 
-Event ready; // confirms everything is ready
-
 // check the command line
 if( !me.args() || me.args() == 2 ) // take arguments
 {
@@ -91,7 +89,8 @@ AmbiGranularSupport assistant;
 AmbiGranulator grain(filename)[nGrans];
 Encode3 enc[nGrans];
 WvOut record[enc[0].channels()]; // record
-BFormat3 bform(1.0);
+JCRev reverb[nGrans]; // reverb
+BFormat3 bform(1.0/nGrans);
 Gain sum(1.0/nGrans)[nGrans];
 
 // all the OSC addresses
@@ -118,9 +117,9 @@ fun void keyOnListen() // listens to the stream of keypresses down
                 {
                     if( keyArray[i] != 0 )
                     {
-                        // cherr <= ".key called" <= IO.newline();
+                        cherr <= key <= ".key called" <= IO.newline();
                         assistant.key(key, grain[i]);
-                    }
+                    }   
                 }
                 if( key <= 97 && key >= 84 ) spork ~ arrayOnChanger(key);
                 // print them out
@@ -304,10 +303,11 @@ spork ~ mouseYListen();
 
 for(int i; i < grain.size(); i++)
 {
-    enc[i].gain(1.0/nGrans);
+    reverb[i].mix(0.025); // full mix
+    85.0 => grain[i].grain_duration; // how long are grains
     grain[i].play();
     spork ~ updateEncoder(grain[i], enc[i]);
-    grain[i] => enc[i] => bform => blackhole; // patch this to decoder
+    grain[i] => reverb[i] => enc[i] => bform => blackhole;// patch this to decoder
     1 => assistant.print;
 }
 
@@ -317,7 +317,7 @@ for(int i; i < bform.channels(); i++)
     record[i].wavFilename("bash-put"+"_"+i);
 }
 
-grain[0] => dac;
+bform.chan(0) => dac;
 
 // open keyboard 
 if( !hi.openKeyboard( device ) ) me.exit();

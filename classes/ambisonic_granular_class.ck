@@ -90,7 +90,7 @@ public class AmbiGranulator extends Chugraph
             // slew towards position
             ( (position_target - position) * slew + position ) $ int => position;
             // wait time
-            1::ms => now;
+            5::ms => now;
         }
     }
 
