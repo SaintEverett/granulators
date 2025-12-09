@@ -31,8 +31,16 @@ dac.channels() => int nchan;
 string file;
 0 => int device;
 int keyArray[nchan];
-if(me.args() == 1) me.arg(0) => Std.atoi => device; // what hid device
-if(me.args() == 2) me.arg(1) => file;
+if(me.args() == 2)
+{
+    me.arg(0) => file;
+    me.arg(1) => Std.atoi => device; // what hid device 
+}
+else if(me.args() == 1)
+{
+    me.arg(0) => file;
+}
+else me.exit();
 0 => int mode;
 int ctrl_state;
 
