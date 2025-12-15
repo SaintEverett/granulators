@@ -28,15 +28,26 @@ class transportGran extends Granulator
 }
 
 dac.channels() => int nchan;
+string file;
 0 => int device;
 int keyArray[nchan];
-if(me.args()) me.arg(0) => Std.atoi => device; // what hid device
+if(me.args() == 2)
+{
+    me.arg(0) => file;
+    me.arg(1) => Std.atoi => device; // what hid device 
+}
+else if(me.args() == 1)
+{
+    me.arg(0) => file;
+}
+else me.exit();
 0 => int mode;
 int ctrl_state;
 
-transportGran grain("source.wav")[nchan];
+transportGran grain(file)[nchan];
 DelayLine lines[3]; // 3 delay lines for each granulator
 WinFuncEnv entries[nchan]; // env for delays of each granulator
+WvOut recorder[nchan];
 GranularSupport assistance; // helper to interpret hid
 1 => assistance.print; // print out control messages
 Gain wet(0.0)[nchan]; // wet gain
@@ -56,6 +67,9 @@ for(int i; i < nchan; i++)
     grain[i] => entries[i];
     grain[i] => input[i] => wet[i] => reverb[i] => dac.chan(i); // wet chain
     grain[i] => input[i] => dry[i] => dac.chan(i); // dry chain
+    recorder[i].wavFilename("../recordings/"+Machine.timeOfDay()+"-"+i+".wav");
+    reverb[i] => recorder[i] => blackhole;
+    dry[i] => recorder[i] => blackhole;
 }
 
 for(int i; i < lines.size(); i++)
@@ -67,6 +81,8 @@ for(int i; i < lines.size(); i++)
 
 lines[0] => atten[0] => delay_verb[0] => dac.chan(0);
 lines[2] => atten[2] => delay_verb[2] => dac.chan(1);
+delay_verb[0] => dac.chan(0+(nchan/2));
+delay_verb[2] => dac.chan(1+(nchan/2));
 
 Hid key; // hid
 HidMsg msg; // hid decrypt
@@ -222,7 +238,7 @@ while(true)
         if(msg.isButtonDown())
         {
             //cherr <= msg.key <= " " <= IO.newline();
-            if(msg.key == 41) {cherr <= IO.newline() <= "Exiting" <= IO.newline(); me.exit();}
+            if(msg.key == 41) {cherr <= IO.newline() <= "Exiting" <= IO.newline(); for(int i; i < recorder.size(); i++) {recorder[i].closeFile();} me.exit();}
             else if( msg.key <= 97 && msg.key >= 84 ) spork ~ arrayOnChanger(msg.key);
             else if(msg.key == 224)
             {
