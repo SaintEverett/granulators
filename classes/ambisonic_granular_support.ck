@@ -236,6 +236,6 @@ public class AmbiGranularSupport // carbon copy of keyboard mapping from Everett
     {
         placement[1] => gran.gain_target;
         ((placement[0] * (90.0 + 90.0)) - 90.0) => gran.aziVelocity;
-        // gran.Velocities();
+        gran.Velocities();
     }
 }

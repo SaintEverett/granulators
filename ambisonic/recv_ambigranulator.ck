@@ -58,7 +58,7 @@ OscMsg letterOpener; // OSC reader
 int keyArray[8]; // stores the current granulator you want to edit
 
 // check the command line
-if( !me.args() || me.args() == 2 ) // take arguments
+if( me.args() <= 2) // take arguments
 {
     cherr <= "Input required, format is [audiofile]:[howmany]:[hostname]:[port]" <= IO.newline()
           <= "If no port specified, default to 6449";
@@ -87,10 +87,10 @@ for( auto x : mailBox ) // set your port for OSC
 
 AmbiGranularSupport assistant;
 AmbiGranulator grain(filename)[nGrans];
-Encode3 enc[nGrans];
+Encode2 enc[nGrans];
 WvOut record[enc[0].channels()]; // record
 JCRev reverb[nGrans]; // reverb
-BFormat3 bform(1.0/nGrans);
+OrderGain2 bform(1.0/nGrans);
 Gain sum(1.0/nGrans)[nGrans];
 
 // all the OSC addresses
@@ -285,7 +285,7 @@ fun void arrayOffChanger(int key)
     }
 }
 
-fun void updateEncoder(AmbiGranulator g, Encode3 encoder)
+fun void updateEncoder(AmbiGranulator g, Encode2 encoder)
 {
     while(true)
     {
