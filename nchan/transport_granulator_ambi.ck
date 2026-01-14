@@ -40,10 +40,11 @@ else if(me.args() == 1)
 {
     me.arg(0) => file;
 }
-else me.exit();
+else { cherr <= "please provide input arguments" <= IO.nl(); me.exit(); }
 0 => int mode;
 int ctrl_state;
 
+FileIO fio;
 transportGran grain(file)[nchan]; // the actual granulators
 DelayLine lines[3]; // 3 delay lines for each granulator
 WinFuncEnv entries[nchan]; // env for delays of each granulator
@@ -87,16 +88,21 @@ sum.chan(0) => dac;
 //lines[0] => atten[0] => delay_verb[0] => dac.chan(0); // this is gonna have to be user specific
 //lines[2] => atten[2] => delay_verb[2] => dac.chan(1);
 
-for(int i; i < sum.channels(); i++)
-{
-    recorder[i].wavFilename("../recordings/"+Machine.timeOfDay()+"-"+i+".wav");
-    sum.chan(i) => recorder[i] => blackhole;
-}
+beginRecord(sum, recorder);
 
 Hid key; // hid
 HidMsg msg; // hid decrypt
 
-if(!key.openKeyboard(device)) {cherr <= "Could not open specified HID device"; me.exit();}
+if(!key.openKeyboard(device)) {cherr <= "Could not open specified key device"; me.exit();}
+
+fun void beginRecord(OrderGain2 sum, WvOut recorder[])
+{
+    for(int i; i < sum.channels(); i++)
+    {
+        recorder[i].wavFilename("../recordings/"+Machine.timeOfDay()+"-"+i+".wav");
+        sum.chan(i) => recorder[i] => blackhole;
+    }
+}
 
 fun void keyOn(WinFuncEnv env_, int which)
 {
@@ -233,6 +239,32 @@ fun void arrayOffChanger(int key)
     }
 }
 
+fun void miceWatch()
+{
+    Hid mos;
+    HidMsg mosmsg; 
+    if(!mos.openMouse(0)) {cherr <= "Could not open specified mouse device"; me.exit();}
+    float position[2];
+
+    while(true)
+    {
+        mos => now;
+        while(mos.recv(mosmsg))
+        {
+            mosmsg.scaledCursorX => position[0];
+            mosmsg.scaledCursorY => position[1];
+            for(int i; i < keyArray.size(); i++)
+            {
+                if(keyArray[i] != 0)
+                {
+                    assistance.mouse(position, grain[i]);
+                }
+            }
+        }
+    }
+}
+
+spork ~ miceWatch();
 
 for(int i; i < nchan; i++)
 {
@@ -240,6 +272,9 @@ for(int i; i < nchan; i++)
     grainCode[i].pos(i*90.0, 0); // set each encoder 90 degrees apart
     spork ~ clock(grain[i]);
 }
+
+fio.open("../audio/");
+fio.dirList() @=> string files[];
 
 while(true)
 {
@@ -249,10 +284,26 @@ while(true)
         if(msg.isButtonDown())
         {
             //cherr <= msg.key <= " " <= IO.newline();
-            if(msg.key == 41) {cherr <= IO.newline() <= "Exiting" <= IO.newline(); for(int i; i < recorder.size(); i++) {recorder[i].closeFile();} me.exit();}
-            else if( msg.key <= 97 && msg.key >= 84 ) spork ~ arrayOnChanger(msg.key);
-            else if(msg.key == 224) 1 => ctrl_state;
-            else if (msg.key == 82 || msg.key == 81)
+            if(msg.key == 41) {cherr <= IO.newline() <= "Exiting" <= IO.newline(); for(int i; i < recorder.size(); i++) {recorder[i].closeFile();} me.exit();} // close up shop
+            else if( msg.key <= 97 && msg.key >= 84 ) spork ~ arrayOnChanger(msg.key); // change our keypad array
+            else if(msg.key == 224) 1 => ctrl_state; // set control state
+            else if(ctrl_state)
+            {
+                if(msg.key >= 16 && msg.key <= 25)
+                {
+                    msg.key - 16 => int index;
+                    <<< index >>>;
+                    for(int i; i < keyArray.size(); i++)
+                    {
+                        if(keyArray[i] != 0)
+                        {
+                            grain[i].fileChange("../audio/"+files[index]); 
+                            cherr <= "Grain " <= i <= " swapping to file " <= "../audio/"+files[index] <= IO.nl(); 
+                        }
+                    }
+                }
+            }
+            else if (msg.key == 82 || msg.key == 81) // set reverb gain
             {
                 for(int i; i < nchan; i++)
                 {
@@ -277,7 +328,7 @@ while(true)
                     }
                 }          
             }
-            else if (msg.key == 43 || msg.key == 225)
+            else if (msg.key == 43 || msg.key == 225) // set input gain
             {
                 for(int i; i < nchan; i++)
                 {
@@ -298,7 +349,7 @@ while(true)
                     }
                 }
             }
-            else if (msg.key == 79 || msg.key == 80)
+            else if (msg.key == 79 || msg.key == 80) // set transport speed
             {
                 for(int i; i < nchan; i++)
                 {
@@ -319,7 +370,7 @@ while(true)
                     }
                 }
             }
-            else if(msg.key == 45 || msg.key == 46)
+            else if(msg.key == 45 || msg.key == 46) // set transport mode
             {
                 for(int i; i < nchan; i++)
                 {
@@ -334,7 +385,7 @@ while(true)
                     }
                 }
             }
-            else if(msg.key == 44) 
+            else if(msg.key == 44) // transport pause
             {
                 for(int i; i < nchan; i++)
                 {
@@ -346,7 +397,7 @@ while(true)
                     }
                 }
             }
-            else if(msg.key == 228 || msg.key == 230)
+            else if(msg.key == 228 || msg.key == 230) // increase decrease grain size with alt & ctrl
             {
                 for(int i; i < nchan; i++)
                 {
@@ -370,7 +421,7 @@ while(true)
                 }
                 
             }
-            else if(msg.key <= 69 && msg.key >= 58)
+            else if(msg.key <= 69 && msg.key >= 58) // open selected grains to a delay line
             {
                 if(msg.key == 58 || msg.key == 62 || msg.key == 66) // if entry
                 {
@@ -401,7 +452,7 @@ while(true)
                     cherr <= "Line " <= (msg.key-59)/4 <= " flipped to " <= lines[(msg.key-59)/4].feedback() <= IO.newline();
                 }
             }
-            else 
+            else // if it can fit in the assistance class it'll be here
             {
                 for(int i; i < nchan; i++)
                 {
@@ -415,7 +466,7 @@ while(true)
         if (msg.isButtonUp())
         {
             if( msg.key <= 97 && msg.key >= 84 ) spork ~ arrayOffChanger(msg.key);
-            else if(msg.key == 58 || msg.key == 62 || msg.key == 66) // if entry
+            else if(msg.key == 58 || msg.key == 62 || msg.key == 66) // if you let go of a delay line send, this is where it is disconnected
             {
                 for(int i; i < nchan; i++)
                 {
@@ -428,7 +479,7 @@ while(true)
                     }
                 }
             }
-            else if(!ctrl_state)
+            else if(!ctrl_state) // if you decreased a delay line's gain 
             {
                 if(msg.key == 59 || msg.key == 63 || msg.key == 67) // if entry
                 {
@@ -437,7 +488,7 @@ while(true)
                     cherr <= "Line " <= (msg.key-59)/4 <= " decreased to " <= lines[(msg.key-59)/4].feedback() <= IO.newline();
                 }
             }
-            else if(msg.key == 224)
+            else if(msg.key == 224) // set ctrl state
             {
                 0 => ctrl_state;
                 //cherr <= ctrl_state <= IO.newline();

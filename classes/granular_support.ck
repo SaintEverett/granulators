@@ -222,9 +222,9 @@ public class GranularSupport // carbon copy of keyboard mapping from Everett
         }
     }
 
-    fun void mouse(float placement[], Granulator gran)
+    fun void mouse(float placement[], Granulator gran) // adjust grain duration and volume with mouse
     {
-        ((Math.pow((placement[0] - 0.0),4) * (gran.grainSizeMax - gran.grainSizeMin) + gran.grainSizeMin)) => gran.grain_duration;
-        placement[1] => gran.gain_target;
+        ((placement[0] * (gran.grainSizeMax - gran.grainSizeMin) + gran.grainSizeMin)) => gran.grain_duration;
+        1.0 - placement[1] => gran.gain_target;
     }
 }

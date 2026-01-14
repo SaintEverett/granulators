@@ -22,6 +22,7 @@ public class Granulator extends Chugraph
     1.0 => float pitch_target; // where the pitch slew wants to go
     1.0 => float gain_target; // where the volume slew wants to go
     0.0 => float temp_gain;
+    1 => int go; // by default, grain will play, go is used to silence the granulator
 
     fun void Granulator(string file)
     {
@@ -41,11 +42,13 @@ public class Granulator extends Chugraph
 
     fun void fileChange(string n_filename)
     {
+        0 => go; // stop granulation
         env[0].keyOff(); // ensure we are silent
         env[1].keyOff();
         buffer.read(n_filename); // try to read
         if(!buffer.ready()) <<< "buffer #", "encountered issues after trying to change source file" >>>; // if it didn't read well then say so
         n_filename => filename; // assuming this is now the currently playing file, officially change the variable
+        1 => go; // alright we're ready to start back up
     }
 
     fun void play()
@@ -139,12 +142,14 @@ public class Granulator extends Chugraph
             // set buffer position
             if(rand_position) Std.rand2( Math.max(1, position - rand_position ) $ int, Math.min( samples, position + rand_position ) $ int ) => buffer.pos;
             else position => buffer.pos;
-            env[0].keyOn(); // enable envelope
-            grain_length*0.5::ms => now; // wait for rise
-            env[0].keyOff(); // close envelope
-            grain_length*0.5::ms => now; // wait
-            pause => now; // until next grain
-            if( spacer%2 ) Std.rand2f( Math.max(1.0, grain_duration - rand_grain_duration), grain_duration + rand_grain_duration)::ms => now; // if the spacer is enabled, it will cause random pauses between grains
+            if(go)
+            {    env[0].keyOn(); // enable envelope
+                grain_length*0.5::ms => now; // wait for rise
+                env[0].keyOff(); // close envelope
+                grain_length*0.5::ms => now; // wait
+                pause => now; // until next grain
+                if( spacer%2 ) Std.rand2f( 2.5*Math.max(1.0, grain_duration - rand_grain_duration), grain_duration + rand_grain_duration)::ms => now; // if the spacer is enabled, it will cause random pauses between grains
+            }
         }
     }
 }
