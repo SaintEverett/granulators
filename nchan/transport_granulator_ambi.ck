@@ -83,17 +83,36 @@ for(int i; i < lines.size(); i++)
     delay_verb[i].mix(0.025444);
 }
 
-sum.chan(0) => dac;
-
-//lines[0] => atten[0] => delay_verb[0] => dac.chan(0); // this is gonna have to be user specific
-//lines[2] => atten[2] => delay_verb[2] => dac.chan(1);
+lines[0] => atten[0] => delay_verb[0] => dac.chan(1); // this is gonna have to be user specific
+lines[1] => atten[1] => delay_verb[1] => dac.chan(4);
+lines[2] => atten[2] => delay_verb[2] => dac.chan(6);
 
 beginRecord(sum, recorder);
+spork ~ setupDecode(sum);
 
 Hid key; // hid
 HidMsg msg; // hid decrypt
 
 if(!key.openKeyboard(device)) {cherr <= "Could not open specified key device"; me.exit();}
+
+fun void setupDecode(OrderGain2 b_format)
+{
+    float speakAngles[9][2];
+    for(int i; i < speakAngles.size(); i++)
+    {
+        i * 360.0/8.0 => speakAngles[(i+1)%9][0];
+    }
+    SAD2 sad(speakAngles);
+    b_format => sad;
+    for(int i; i < sad.channels(); i++)
+    {
+        sad.chan(i) => dac.chan(i);
+    }
+    while(true)
+    {
+        1::day => now;
+    }
+}
 
 fun void beginRecord(OrderGain2 sum, WvOut recorder[])
 {
