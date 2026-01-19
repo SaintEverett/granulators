@@ -15,14 +15,14 @@ class transportGran extends Granulator
             // patchbay
             env[i].gain(0.95);
             buffer => env[i] => outlet;
-            env[i].setBlackmanHarris();
+            env[i].setExponential();
         }
         buffer.samples() => samples; // give GPS sample count from associated buffer
         gain_target => buffer.gain; // set buffer gain
     }
     0 => int current;
     0 => int play_; // 0 stop 1 play
-    0 => int mode; // pause, loop, ping pong
+    1 => int mode; // pause, loop, ping pong
     1.0 => float speed; // negative backwards, positive forward, max of 4 times the original speed
     85.0 => float grainsize; // how long are grains
 }
@@ -273,7 +273,7 @@ for(int i; i < nchan; i++)
     spork ~ clock(grain[i]);
 }
 
-fio.open("../audio/");
+fio.open("../audio/clicks/");
 fio.dirList() @=> string files[];
 
 while(true)
@@ -292,12 +292,12 @@ while(true)
                 if(msg.key >= 16 && msg.key <= 25)
                 {
                     msg.key - 16 => int index;
-                    <<< index >>>;
+                    index%files.size() => index;
                     for(int i; i < keyArray.size(); i++)
                     {
                         if(keyArray[i] != 0)
                         {
-                            grain[i].fileChange("../audio/"+files[index]); 
+                            grain[i].fileChange("../audio/clicks/"+files[index]); 
                             cherr <= "Grain " <= i <= " swapping to file " <= "../audio/"+files[index] <= IO.nl(); 
                         }
                     }
@@ -391,8 +391,9 @@ while(true)
                 {
                     if(keyArray[i] != 0)
                     {
-                        1 +=> grain[i].play_; grain[i].play_%2 => grain[i].play_;
-                        if(grain[i].play_) cherr <= "Play" <= IO.newline();
+                        1 +=> grain[i].play_; 
+                        (grain[i].play_%2) => grain[i].play_;
+                        if(grain[i].play_) cherr <= "Play " <= IO.newline();
                         else cherr <= "Paused" <= IO.newline();
                     }
                 }

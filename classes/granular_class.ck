@@ -129,7 +129,7 @@ public class Granulator extends Chugraph
         while( true )
         {   
             // compute grain length
-            Std.rand2f( Math.max(1.0, grain_duration - rand_grain_duration), grain_duration + rand_grain_duration) => grain_length;
+            Math.clampf((Std.rand2f( Math.max(1.0, grain_duration - rand_grain_duration), grain_duration + rand_grain_duration)), 0, samples) => grain_length;
             // compute grain duration for envelope
             for(int i; i < env.size(); i++)
             {
