@@ -6,7 +6,7 @@ public class Granulator extends Chugraph
     // parameters of the granulator 
     800.0 => float grainSizeMax; // used as max grain size value in cursor scaling
     25.0 => float grainSizeMin; // used as min grain size value in cursor scaling
-    1.0 => float grain_duration; // initial value to prevent starting at 0
+    1.0 => float grain_duration; // the internalized length of the grains (set this)
     1.0 => float rand_grain_duration; // amt of random grain length
     1.0 => float pitch; // pitch
     0.0 => float rand_pitch; // amt of random pitch
@@ -14,9 +14,10 @@ public class Granulator extends Chugraph
     0 => int rand_position; // so is this
     0 => int pitchscale; // this will make randomized pitch more or less significant (its fun)
     5::ms => dur pause;
-    float grain_length;
-    int samples;
-    int spacer;
+    float grain_length; // the value that is calculated using grain_duration (do not set this)
+    int samples; // how long is the current file in samples
+    int spacer; // are there spaces
+    15.0 => float space_length; // how long are the spaces
     // targets
     float position_target; // where the position slew wants to go
     1.0 => float pitch_target; // where the pitch slew wants to go
@@ -148,8 +149,43 @@ public class Granulator extends Chugraph
                 env[0].keyOff(); // close envelope
                 grain_length*0.5::ms => now; // wait
                 pause => now; // until next grain
-                if( spacer%2 ) Std.rand2f( 2.5*Math.max(1.0, grain_duration - rand_grain_duration), grain_duration + rand_grain_duration)::ms => now; // if the spacer is enabled, it will cause random pauses between grains
+                if( spacer%2 ) Std.rand2f( space_length*Math.max(1.0, grain_duration - rand_grain_duration), grain_duration + rand_grain_duration)::ms => now; // if the spacer is enabled, it will cause random pauses between grains
             }
         }
+    }
+
+    fun void setPitch(float n_pitch) // slew to position
+    {
+        if(n_pitch > 0.0) n_pitch => pitch_target;
+    }
+
+    fun void instantPitch(float n_pitch) // jump to position
+    {
+        if(n_pitch > 0.0) n_pitch => pitch;
+    }
+
+    fun void setPosition(float n_position) // normalized to [0.0,1.0]
+    {
+        if(n_position > 0.0) n_position * samples => position_target;
+    }
+
+    fun void instantPosition(float n_position) // jump to position
+    {
+        if(n_position > 0) (n_position * samples) $ int  => position;
+    }
+
+    fun void setVolume(float n_gain)
+    {
+        n_gain => gain_target;
+    }
+
+    fun void instantGain(float n_gain)
+    {
+        n_gain => gain => buffer.gain;
+    }
+
+    fun void setGrainSize(float n_size)
+    {
+        if(n_size > 0) n_size => grain_duration;
     }
 }
