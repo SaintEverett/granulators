@@ -169,6 +169,11 @@ public class Granulator extends Chugraph
         if(n_position > 0.0) n_position * samples => position_target;
     }
 
+    fun float getPosition()
+    {
+        return position_target;
+    }
+
     fun void instantPosition(float n_position) // jump to position
     {
         if(n_position > 0) (n_position * samples) $ int  => position;
@@ -184,8 +189,13 @@ public class Granulator extends Chugraph
         n_gain => gain => buffer.gain;
     }
 
-    fun void setGrainSize(float n_size)
+    fun void grainSize(float n_size)
     {
         if(n_size > 0) n_size => grain_duration;
+    }
+
+    fun float grainSize()
+    {
+        return grain_duration;
     }
 }
