@@ -2,10 +2,11 @@
 @import "../classes/granular_support.ck"
 @import "../classes/delayline_class.ck"
 @import "../classes/oscHID.ck"
+@import "../classes/fakeCursor.ck"
 
-class transportGran extends Granulator
+class TransportGran extends Granulator
 {
-    fun void transportGran(string file)
+    fun void TransportGran(string file)
     {
         file => filename;
         buffer.read(filename);
@@ -28,6 +29,10 @@ class transportGran extends Granulator
     85.0 => float grainsize; // how long are grains
 }
 
+0 => int DELAY_LINES; // using delay lines?
+0 => int AMBISONIC; // using ambisonics?
+1 => int CURSOR; // using cursor?
+
 4 => int nchan; // how many granulators!?!??!
 string file;
 0 => int device;
@@ -47,10 +52,11 @@ int ctrl_state;
 
 FileIO fio;
 OscHID inhid(4526);
-transportGran grain(file)[nchan]; // the actual granulators
 DelayLine lines[3]; // 3 delay lines for each granulator
 WinFuncEnv entries[nchan]; // env for delays of each granulator
 WvOut recorder[9]; // record my performance automatically
+
+TransportGran grain(file)[nchan]; // the actual granulators
 GranularSupport assistance; // helper to interpret hid
 Encode2 grainCode[nchan]; // encoders for granulators
 OrderGain2 sum(1.0/nchan); // sum all the encoders down to a single spatial mix
@@ -60,9 +66,9 @@ OrderGain2 sum(1.0/nchan); // sum all the encoders down to a single spatial mix
 Gain wet(0.0)[nchan]; // wet gain
 Gain dry(0.0)[nchan]; // dry gain
 Gain input(0.0)[nchan]; // input stage
+Gain atten(0.65)[3]; // attenuate the delays going into the reverb
 NRev reverb[nchan]; // reverb
 NRev delay_verb[3]; // set and forget reverbs for delay lines
-Gain atten(0.65)[3]; // attenuate the delays going into the reverb
 Shred stack[3][nchan];
 
 200::ms => dur env_time;
@@ -78,27 +84,25 @@ for(int i; i < nchan; i++)
     grainCode[i] => sum; // into bformat sum
 }
 
-for(int i; i < lines.size(); i++)
+if(DELAY_LINES)
 {
-    lines[i].DelayLine(((i+i+1)*178)::ms,(((i+i+1)*178)+4)::ms);
-    lines[i].feedback(0.56);
-    delay_verb[i].mix(0.025444);
+    for(int i; i < lines.size(); i++)
+    {
+        lines[i].DelayLine(((i+i+1)*178)::ms,(((i+i+1)*178)+4)::ms);
+        lines[i].feedback(0.56);
+        delay_verb[i].mix(0.025444);
+    }
+    lines[0] => atten[0] => delay_verb[0] => dac.chan(1); // this is gonna have to be user specific
+    lines[1] => atten[1] => delay_verb[1] => dac.chan(4);
+    lines[2] => atten[2] => delay_verb[2] => dac.chan(6);
 }
 
-//lines[0] => atten[0] => delay_verb[0] => dac.chan(1); // this is gonna have to be user specific
-//lines[1] => atten[1] => delay_verb[1] => dac.chan(4);
-//lines[2] => atten[2] => delay_verb[2] => dac.chan(6);
+if(CURSOR) spork ~ fakeCursor(inhid);
 
-sum.chan(0) => dac;
+if(AMBISONIC) spork ~ setupDecode(sum);
+else sum.chan(0) => dac;
+
 beginRecord(sum, recorder);
-//spork ~ setupDecode(sum);
-
-Hid key; // hid
-HidMsg msg; // hid decrypt
-
-if(!key.openKeyboard(device)) {cherr <= "Could not open specified key device"; me.exit();}
-
-key.recv(msg);
 
 fun void setupDecode(OrderGain2 b_format)
 {
@@ -301,13 +305,13 @@ while(true)
                 }
             }
         }
-        else if (inhid.lastKeyOn == 82 || inhid.lastKeyOn == 81) // set reverb gain
+        else if (inhid.lastKeyOn == 75 || inhid.lastKeyOn == 78) // set reverb gain
         {
             for(int i; i < nchan; i++)
             {
                 if(keyArray[i] != 0)
                 {
-                    if(inhid.lastKeyOn == 82)
+                    if(inhid.lastKeyOn == 75)
                     {
                         Math.pow(wet[i].gain()/4.0,2) + wet[i].gain() + 0.01 => wet[i].gain;
                         Math.clampf(wet[i].gain(), 0.0, 1.0) => wet[i].gain;
@@ -419,7 +423,7 @@ while(true)
             }
             
         }
-        else if(inhid.lastKeyOn <= 69 && inhid.lastKeyOn >= 58) // open selected grains to a delay line
+        else if(inhid.lastKeyOn <= 69 && inhid.lastKeyOn >= 58 || DELAY_LINES) // open selected grains to a delay line
         {
             if(inhid.lastKeyOn == 58 || inhid.lastKeyOn == 62 || inhid.lastKeyOn == 66) // if entry
             {
@@ -461,10 +465,10 @@ while(true)
             }
         }
     }
-    else if (inhid.lastMsgType == 1)
+    else if (inhid.lastMsgType == 1) 
     {
         if( inhid.lastKeyOff <= 97 && inhid.lastKeyOff >= 81 ) arrayOffChanger(inhid.lastKeyOff);
-        else if(inhid.lastKeyOff == 58 || inhid.lastKeyOff == 62 || inhid.lastKeyOff == 66) // if you let go of a delay line send, this is where it is disconnected
+        else if(inhid.lastKeyOff == 58 || inhid.lastKeyOff == 62 || inhid.lastKeyOff == 66 || DELAY_LINES) // if you let go of a delay line send, this is where it is disconnected
         {
             for(int i; i < nchan; i++)
             {
@@ -477,7 +481,7 @@ while(true)
                 }
             }
         }
-        else if(!ctrl_state) // if you decreased a delay line's gain 
+        else if(!ctrl_state || DELAY_LINES) // if you decreased a delay line's gain 
         {
             if(inhid.lastKeyOff == 59 || inhid.lastKeyOff == 63 || inhid.lastKeyOff == 67) // if entry
             {
@@ -489,7 +493,6 @@ while(true)
         else if(inhid.lastKeyOff == 224) // set ctrl state
         {
             0 => ctrl_state;
-            //cherr <= ctrl_state <= IO.newline();
         }
     }
     else if(inhid.lastMsgType == 2)
