@@ -2,7 +2,7 @@
 @import "../classes/granular_support.ck"
 @import "../classes/delayline_class.ck"
 @import "../classes/oscHID.ck"
-@import "../classes/fakeCursor.ck"
+@import "../classes/FakeCursor.ck"
 
 class TransportGran extends Granulator
 {
@@ -31,9 +31,10 @@ class TransportGran extends Granulator
 
 0 => int DELAY_LINES; // using delay lines?
 0 => int AMBISONIC; // using ambisonics?
-1 => int CURSOR; // using cursor?
+0 => int FAKE_CURSOR; // using fake cursor? 
+3 => int GRAINS_PER_CHAN; // nchan sets an amount of grain "objects" positioned in ambisonic space, controlled by the numpad, how many granulators would you like per object?
 
-4 => int nchan; // how many granulators!?!??!
+8 => int nchan; // how many granulators!?!??!
 string file;
 0 => int device;
 int keyArray[nchan];
@@ -51,12 +52,12 @@ else { cherr <= "please provide input arguments" <= IO.nl(); me.exit(); }
 int ctrl_state;
 
 FileIO fio;
-OscHID inhid(4526);
+OscHID inhid(4526); // receive some hid values
 DelayLine lines[3]; // 3 delay lines for each granulator
 WinFuncEnv entries[nchan]; // env for delays of each granulator
 WvOut recorder[9]; // record my performance automatically
 
-TransportGran grain(file)[nchan]; // the actual granulators
+TransportGran grain(file)[nchan*GRAINS_PER_CHAN]; // the actual granulators
 GranularSupport assistance; // helper to interpret hid
 Encode2 grainCode[nchan]; // encoders for granulators
 OrderGain2 sum(1.0/nchan); // sum all the encoders down to a single spatial mix
@@ -73,15 +74,15 @@ Shred stack[3][nchan];
 
 200::ms => dur env_time;
 
-for(int i; i < nchan; i++)
+for(int i; i < grain.size(); i++)
 {
-    reverb[i].mix(1.0); // full mix
-    entries[i].attackTime(env_time); 
-    entries[i].releaseTime(env_time);
-    grain[i] => entries[i]; // into envelope for delays
-    grain[i] => input[i] => wet[i] => reverb[i] => grainCode[i]; // wet chain
-    grain[i] => input[i] => dry[i] => grainCode[i]; // dry chain
-    grainCode[i] => sum; // into bformat sum
+    reverb[i%nchan].mix(1.0); // full mix
+    entries[i%3].attackTime(env_time); 
+    entries[i%3].releaseTime(env_time);
+    grain[i] => entries[i%nchan]; // into envelope for delays
+    grain[i] => input[i%nchan] => wet[i%nchan] => reverb[i%nchan] => grainCode[i%nchan]; // wet chain
+    grain[i] => input[i%nchan] => dry[i%nchan] => grainCode[i%nchan]; // dry chain
+    grainCode[i%nchan] => sum; // into bformat sum
 }
 
 if(DELAY_LINES)
@@ -96,8 +97,6 @@ if(DELAY_LINES)
     lines[1] => atten[1] => delay_verb[1] => dac.chan(4);
     lines[2] => atten[2] => delay_verb[2] => dac.chan(6);
 }
-
-if(CURSOR) spork ~ fakeCursor(inhid);
 
 if(AMBISONIC) spork ~ setupDecode(sum);
 else sum.chan(0) => dac;
@@ -149,7 +148,7 @@ fun void keyOff(WinFuncEnv env_, int which)
     env_ =< lines[which];
 }
 
-fun void clock(transportGran g)
+fun void clock(TransportGran g)
 {
     if(0 == g.samples) me.exit();  
     while(true)
@@ -169,7 +168,7 @@ fun void clock(transportGran g)
     }
 }
 
-fun int edgeCase(transportGran m_g)
+fun int edgeCase(TransportGran m_g)
 {
     if(m_g.current == 0)
     {
@@ -187,6 +186,13 @@ fun int edgeCase(transportGran m_g)
     return 0;
 }
 
+/*
+
+        TODO: numpad key codes are different across laptop, mac, and linux machine (who would've guessed)
+
+            solution: design more robust numpad class which is platform dependent
+
+*/
 fun void arrayOnChanger(int key)
 {
     if( keyArray.size() == 8 ) // 8 speakers
@@ -271,10 +277,10 @@ fun void arrayOffChanger(int key)
     }
 }
 
-for(int i; i < nchan; i++)
+for(int i; i < grain.size(); i++)
 {
     grain[i].play();
-    grainCode[i].pos(i*90.0, 0); // set each encoder 90 degrees apart
+    grainCode[i%nchan].pos(i*(360.0/nchan), 0); // set each encoder some distance apart
     spork ~ clock(grain[i]);
 }
 
@@ -295,9 +301,9 @@ while(true)
             {
                 inhid.lastKeyOn - 16 => int index;
                 <<< index >>>;
-                for(int i; i < keyArray.size(); i++)
+                for(int i; i < grain.size(); i++)
                 {
-                    if(keyArray[i] != 0)
+                    if(keyArray[i%nchan] != 0)
                     {
                         grain[i].fileChange("../audio/"+files[index]); 
                         cherr <= "Grain " <= i <= " swapping to file " <= "../audio/"+files[index] <= IO.nl(); 
@@ -307,55 +313,55 @@ while(true)
         }
         else if (inhid.lastKeyOn == 75 || inhid.lastKeyOn == 78) // set reverb gain
         {
-            for(int i; i < nchan; i++)
+            for(int i; i < grain.size(); i++)
             {
-                if(keyArray[i] != 0)
+                if(keyArray[i%nchan] != 0)
                 {
                     if(inhid.lastKeyOn == 75)
                     {
-                        Math.pow(wet[i].gain()/4.0,2) + wet[i].gain() + 0.01 => wet[i].gain;
-                        Math.clampf(wet[i].gain(), 0.0, 1.0) => wet[i].gain;
-                        1.0 - wet[i].gain() => dry[i].gain;
-                        Math.clampf(dry[i].gain(), 0.0, 1.0) => dry[i].gain;
-                        cherr <= "Wet gain: " <= wet[i].gain() <= " Dry gain: " <= dry[i].gain() <= IO.newline();
+                        Math.pow(wet[i%nchan].gain()/4.0,2) + wet[i%nchan].gain() + 0.01 => wet[i%nchan].gain;
+                        Math.clampf(wet[i%nchan].gain(), 0.0, (1.0/GRAINS_PER_CHAN)) => wet[i%nchan].gain;
+                        1.0 - wet[i%nchan].gain() => dry[i%nchan].gain;
+                        Math.clampf(dry[i%nchan].gain(), 0.0, (1.0/GRAINS_PER_CHAN)) => dry[i%nchan].gain;
+                        cherr <= "Wet gain: " <= wet[i%nchan].gain() * GRAINS_PER_CHAN <= " Dry gain: " <= dry[i%nchan].gain() <= IO.newline();
                     }
                     else 
                     {
-                        wet[i].gain() - (0.01 + Math.pow(wet[i].gain()/4.0,2)) => wet[i].gain;
-                        Math.clampf(wet[i].gain(), 0.0, 1.0) => wet[i].gain;
-                        1.0 - wet[i].gain() => dry[i].gain;
-                        Math.clampf(dry[i].gain(), 0.0, 1.0) => dry[i].gain;
-                        cherr <= "Wet gain: " <= wet[i].gain() <= " Dry gain: " <= dry[i].gain() <= IO.newline();
+                        wet[i%nchan].gain() - (0.01 + Math.pow(wet[i%nchan].gain()/4.0,2)) => wet[i%nchan].gain;
+                        Math.clampf(wet[i%nchan].gain(), 0.0, (1.0/GRAINS_PER_CHAN)) => wet[i%nchan].gain;
+                        1.0 - wet[i%nchan].gain() => dry[i%nchan].gain;
+                        Math.clampf(dry[i%nchan].gain(), 0.0, (1.0/GRAINS_PER_CHAN)) => dry[i%nchan].gain;
+                        cherr <= "Wet gain: " <= wet[i%nchan].gain() * GRAINS_PER_CHAN <= " Dry gain: " <= dry[i%nchan].gain() <= IO.newline();
                     }
                 }
             }          
         }
         else if (inhid.lastKeyOn == 43 || inhid.lastKeyOn == 225) // set input gain
         {
-            for(int i; i < nchan; i++)
+            for(int i; i < grain.size(); i++)
             {
-                if(keyArray[i] != 0)
+                if(keyArray[i%nchan] != 0)
                 {
                     if(inhid.lastKeyOn == 43)
                     {
-                        Math.pow(input[i].gain()/4.0,2) + input[i].gain() + 0.01 => input[i].gain;
-                        Math.clampf(input[i].gain(), 0.0, 1.0) => input[i].gain;
-                        cherr <= "Input gain: " <= input[i].gain() <= IO.newline();
+                        Math.pow(input[i%nchan].gain()/4.0,2) + input[i%nchan].gain() + 0.01 => input[i%nchan].gain;
+                        Math.clampf(input[i%nchan].gain(), 0.0, (1.0/GRAINS_PER_CHAN)) => input[i%nchan].gain;
+                        cherr <= "Input gain: " <= input[i%nchan].gain() * GRAINS_PER_CHAN <= IO.newline();
                     }
                     else 
                     {
-                        input[i].gain() - (0.01 + Math.pow(input[i].gain()/4.0,2)) => input[i].gain;
-                        Math.clampf(input[i].gain(), 0.0, 1.0) => input[i].gain;
-                        cherr <= "Input gain: " <= input[i].gain() <= IO.newline();
+                        input[i%nchan].gain() - (0.01 + Math.pow(input[i%nchan].gain()/4.0,2)) => input[i%nchan].gain;
+                        Math.clampf(input[i%nchan].gain(), 0.0, (1.0/GRAINS_PER_CHAN)) => input[i%nchan].gain;
+                        cherr <= "Input gain: " <= input[i%nchan].gain() * GRAINS_PER_CHAN <= IO.newline();
                     }
                 }
             }
         }
         else if (inhid.lastKeyOn == 79 || inhid.lastKeyOn == 80) // set transport speed
         {
-            for(int i; i < nchan; i++)
+            for(int i; i < grain.size(); i++)
             {
-                if(keyArray[i] != 0)
+                if(keyArray[i%nchan] != 0)
                 {
                     if(inhid.lastKeyOn == 79)
                     {
@@ -374,9 +380,9 @@ while(true)
         }
         else if(inhid.lastKeyOn == 45 || inhid.lastKeyOn == 46) // set transport mode
         {
-            for(int i; i < nchan; i++)
+            for(int i; i < grain.size(); i++)
             {
-                if(keyArray[i] != 0)
+                if(keyArray[i%nchan] != 0)
                 {
                     1 +=> grain[i].mode;
                     grain[i].mode%3 => grain[i].mode;
@@ -389,9 +395,9 @@ while(true)
         }
         else if(inhid.lastKeyOn == 44) // transport pause
         {
-            for(int i; i < nchan; i++)
+            for(int i; i < grain.size(); i++)
             {
-                if(keyArray[i] != 0)
+                if(keyArray[i%nchan] != 0)
                 {
                     1 +=> grain[i].play_; grain[i].play_%2 => grain[i].play_;
                     if(grain[i].play_) cherr <= "Play" <= IO.newline();
@@ -401,9 +407,9 @@ while(true)
         }
         else if(inhid.lastKeyOn == 228 || inhid.lastKeyOn == 230) // increase decrease grain size with alt & ctrl
         {
-            for(int i; i < nchan; i++)
+            for(int i; i < grain.size(); i++)
             {
-                if(keyArray[i] != 0)
+                if(keyArray[i%nchan] != 0)
                 {
                     if(inhid.lastKeyOn == 228)
                     {
@@ -427,11 +433,11 @@ while(true)
         {
             if(inhid.lastKeyOn == 58 || inhid.lastKeyOn == 62 || inhid.lastKeyOn == 66) // if entry
             {
-                for(int i; i < nchan; i++)
+                for(int i; i < grain.size(); i++)
                 {
-                    if(keyArray[i] != 0)
+                    if(keyArray[i%nchan] != 0)
                     {
-                        spork ~ keyOn(entries[i], (inhid.lastKeyOn-58)/4) @=> stack[(inhid.lastKeyOn-58)/4][i];
+                        spork ~ keyOn(entries[i%nchan], (inhid.lastKeyOn-58)/4) @=> stack[(inhid.lastKeyOn-58)/4][i%nchan];
                         cherr <= "Opened grain " <= i <= " to delay line " <= (inhid.lastKeyOn-58)/4 <= IO.newline();
                     }
                 }
@@ -456,9 +462,9 @@ while(true)
         }
         else // if it can fit in the assistance class it'll be here
         {
-            for(int i; i < nchan; i++)
+            for(int i; i < grain.size(); i++)
             {
-                if(keyArray[i] != 0)
+                if(keyArray[i%nchan] != 0)
                 {
                     assistance.key(inhid.lastKeyOn, grain[i]);
                 }
@@ -500,9 +506,9 @@ while(true)
         float position[2];
         inhid.lastMouseX => position[0];
         inhid.lastMouseY => position[1];
-        for(int i; i < keyArray.size(); i++)
+        for(int i; i < grain.size(); i++)
         {
-            if(keyArray[i] != 0)
+            if(keyArray[i%nchan] != 0)
             {
                 assistance.mouse(position, grain[i]);
             }
@@ -513,9 +519,9 @@ while(true)
         float position[2];
         inhid.lastMouseX => position[0];
         inhid.lastMouseY => position[1];
-        for(int i; i < keyArray.size(); i++)
+        for(int i; i < grain.size(); i++)
         {
-            if(keyArray[i] != 0)
+            if(keyArray[i%nchan] != 0)
             {
                 assistance.mouse(position, grain[i]);
             }

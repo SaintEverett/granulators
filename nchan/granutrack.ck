@@ -10,19 +10,32 @@
 
 @import "../classes/granular_class.ck"
 
-Granulator grain("audio/2NoiseReduction-SurveyofIBMType2373.wav")[12];
+Granulator grain("audio/granulmaterialhires.wav")[12];
 
-Gain sum(1.0/grain.size());
+Gain sum(1.0/grain.size())[2];
+Gain feedbacks(0.99)[8];
+Gain stringScale(1.0/10.0)[2];
+Delay strings[8];
+
+for(int i; i < strings.size(); i++)
+{
+    strings[i].set((i+32)::ms, (1+i+32)::ms);
+    strings[i] => feedbacks[i] => strings[i] => stringScale[i%2];
+}
 
 for(int i; i < grain.size(); i++)
 {
     Math.random2(0, grain[0].samples) => grain[i].position_target;
     150.0 => grain[i].rand_grain_duration;
     grain[i].play();
-    grain[i] => sum;
+    grain[i] => sum[i%2];
 }
 
-sum => dac;
+stringScale[0] => dac.chan(0);
+stringScale[1] => dac.chan(1);
+
+sum[0] => dac.chan(0);
+sum[1] => dac.chan(1);
 
 // z axis deadzone
 0 => float DEADZONE;
@@ -139,6 +152,7 @@ fun void gametrak()
                 for(int i; i < grain.size(); i++)
                 {
                     1 => grain[i].spacer;
+                    grain[i] => strings[i%8];
                     //2+Math.random2f(-2,2) +=> grain[i].pitch_target;
                 }
                 <<< "button", msg.which, "down" >>>;
@@ -150,6 +164,7 @@ fun void gametrak()
                 for(int i; i < grain.size(); i++)
                 {
                     0 => grain[i].spacer;
+                    grain[i] =< strings[i%8];
                     //1 => grain[i].pitch_target;
                 }
                 <<< "button", msg.which, "up" >>>;
