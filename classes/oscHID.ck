@@ -5,6 +5,7 @@ public class OscHID
     int lastKeyOff;
     float lastMouseX;
     float lastMouseY;
+    0.5 => float sens;
     int lastMsgType; // 0 keyOn, 1 keyOff, 2 mouseX, 3 mouseY
     Event signal;
 
@@ -64,7 +65,7 @@ public class OscHID
             mouseX => now;
             while( mouseX.recv(mOmsg) )
             {
-                mOmsg.getFloat(0) => lastMouseX;
+                mOmsg.getFloat(0) * sens => lastMouseX;
             }
             2 => lastMsgType;
             signal.broadcast();
@@ -82,7 +83,7 @@ public class OscHID
             mouseY => now;
             while( mouseY.recv(mOmsg) )
             {
-                mOmsg.getFloat(0) => lastMouseY;
+                mOmsg.getFloat(0) * sens => lastMouseY;
             }
             3 => lastMsgType;
             signal.broadcast();

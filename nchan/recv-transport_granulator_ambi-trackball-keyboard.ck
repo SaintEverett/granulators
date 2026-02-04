@@ -79,6 +79,8 @@ for(int i; i < grain.size(); i++)
     reverb[i%nchan].mix(1.0); // full mix
     entries[i%3].attackTime(env_time); 
     entries[i%3].releaseTime(env_time);
+    1.0 => grain[i].grainSizeMin;
+    2000.0 => grain[i].grainSizeMax;
     grain[i] => entries[i%nchan]; // into envelope for delays
     grain[i] => input[i%nchan] => wet[i%nchan] => reverb[i%nchan] => grainCode[i%nchan]; // wet chain
     grain[i] => input[i%nchan] => dry[i%nchan] => grainCode[i%nchan]; // dry chain
@@ -505,7 +507,7 @@ while(true)
     {
         float position[2];
         inhid.lastMouseX => position[0];
-        inhid.lastMouseY => position[1];
+        1.0 - inhid.lastMouseY => position[1];
         for(int i; i < grain.size(); i++)
         {
             if(keyArray[i%nchan] != 0)
@@ -518,7 +520,7 @@ while(true)
     {
         float position[2];
         inhid.lastMouseX => position[0];
-        inhid.lastMouseY => position[1];
+        1.0 - inhid.lastMouseY => position[1];
         for(int i; i < grain.size(); i++)
         {
             if(keyArray[i%nchan] != 0)
